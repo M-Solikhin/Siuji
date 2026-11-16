@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Pretest Kalkulus Bab 15</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background: #eef2f7; }
+    .login-wrapper { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .header-brand { background: linear-gradient(135deg, #1a56a0 0%, #0d3d7a 100%); color: #fff; }
+    .subbab-card { border-left: 5px solid #1a56a0; }
+    .link-box { background: #d4edda; border: 1px solid #28a745; border-radius: 8px; padding: 12px 16px;
+                font-family: 'Courier New', monospace; font-size: 0.8rem; word-break: break-all; }
+    code { background: #e8ecf0; padding: 2px 6px; border-radius: 4px; font-size: 0.85em; }
+    .apps-script { background: #272822; color: #f8f8f2; border-radius: 8px; padding: 16px;
+                   font-family: 'Courier New', monospace; font-size: 0.78rem; white-space: pre; overflow-x: auto; }
+  </style>
+</head>
+<body>
+
+<!-- ============================================================ -->
+<!-- LOGIN                                                         -->
+<!-- ============================================================ -->
+<div id="loginWrapper" class="login-wrapper">
+  <div style="width:100%;max-width:400px;padding:16px">
+    <div class="card shadow-lg border-0">
+      <div class="card-header header-brand text-center py-3">
+        <h5 class="mb-0 fw-bold">🔐 Admin Panel</h5>
+        <small>Pretest Kalkulus Bab 15 — Universitas Negeri Malang</small>
+      </div>
+      <div class="card-body p-4">
+        <label class="form-label fw-semibold">Password Admin</label>
+        <input type="password" id="adminPwdInput" class="form-control mb-3"
+               placeholder="Masukkan password admin" autofocus>
+        <button class="btn btn-primary w-100 fw-semibold" onclick="doLogin()">Masuk</button>
+        <div id="loginError" class="alert alert-danger mt-3 py-2 small mb-0" style="display:none">
+          ❌ Password salah. Coba lagi.
+        </div>
+      </div>
+    </div>
+    <p class="text-center text-muted small mt-3">
+      Password default: <code>admin2024</code>
+      <br><span class="text-warning">⚠ Segera ganti password setelah pertama kali masuk!</span>
+    </p>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- DASHBOARD (setelah login)                                     -->
+<!-- ============================================================ -->
+<div id="dashboard" class="container-lg py-4" style="display:none">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-start mb-4 pb-3 border-bottom">
+    <div>
+      <h4 class="mb-0 fw-bold text-primary">📋 Admin Panel — Pretest Kalkulus Bab 15</h4>
+      <small class="text-muted">Universitas Negeri Malang — FMIPA Matematika</small>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <button class="btn btn-outline-secondary btn-sm" onclick="changeAdminPwd()">🔑 Ganti Password</button>
+      <button class="btn btn-outline-danger btn-sm" onclick="doLogout()">Keluar</button>
+    </div>
+  </div>
+
+  <!-- ======================================================= -->
+  <!-- KONFIGURASI SUB-BAB                                     -->
+  <!-- ======================================================= -->
+  <h6 class="text-uppercase text-muted fw-bold small letter-spacing mb-3">Konfigurasi Sub-bab</h6>
+  <div id="subbabContainer"></div>
+
+  <!-- ======================================================= -->
+  <!-- LINK YANG DIHASILKAN                                     -->
+  <!-- ======================================================= -->
+  <div id="linkCard" class="mt-4" style="display:none">
+    <div class="card border-success shadow-sm">
+      <div class="card-header bg-success text-white fw-semibold py-2">
+        ✅ Link Ujian Berhasil Dibuat
+      </div>
+      <div class="card-body">
+        <p class="fw-semibold mb-2">Bagikan link berikut ke mahasiswa:</p>
+        <div id="generatedLinkText" class="link-box mb-3"></div>
+        <div class="d-flex flex-wrap gap-2 mb-3">
+          <button class="btn btn-success" onclick="copyLink()">📋 Salin Link</button>
+          <button class="btn btn-primary" onclick="openLink()">🔗 Buka Ujian</button>
+        </div>
+        <div class="text-muted small" id="linkMeta"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================= -->
+  <!-- KONFIGURASI WEBHOOK GOOGLE SHEETS                        -->
+  <!-- ======================================================= -->
+  <div class="mt-4">
+    <div class="card shadow-sm">
+      <div class="card-header bg-light fw-semibold py-2 d-flex justify-content-between align-items-center"
+           style="cursor:pointer" onclick="toggleWebhook()">
+        <span>⚙️ Konfigurasi Webhook Google Sheets</span>
+        <span id="webhookToggleIcon">▼</span>
+      </div>
+      <div id="webhookBody" class="card-body">
+        <div class="row g-3 mb-3">
+          <div class="col-12">
+            <label class="form-label small fw-semibold">URL Google Apps Script (doPost endpoint)</label>
+            <input type="url" id="webhookUrl" class="form-control"
+                   placeholder="https://script.google.com/macros/s/XXXX/exec">
+            <div class="form-text">Paste URL deployment Apps Script di sini. Kosongkan jika tidak dipakai.</div>
+          </div>
+        </div>
+        <div class="d-flex gap-2 mb-4">
+          <button class="btn btn-primary btn-sm" onclick="saveWebhook()">💾 Simpan URL Webhook</button>
+          <button class="btn btn-outline-secondary btn-sm" onclick="testWebhook()">🔧 Test Koneksi</button>
+        </div>
+
+        <hr>
+        <p class="small fw-semibold mb-2">📄 Kode Google Apps Script (copy ke Apps Script Editor):</p>
+        <div class="apps-script">function doPost(e) {
+  try {
+    var data = JSON.parse(e.postData.contents);
+    var ss   = SpreadsheetApp.getActiveSpreadsheet();
+
+    // --- Sheet Rekap Utama ---
+    var sheet = ss.getSheetByName('Rekap') || ss.insertSheet('Rekap');
+    if (sheet.getLastRow() === 0) {
+      sheet.appendRow(['Timestamp','Sub-bab','Nama','NIM','Offering',
+                       'Email','No.WA','Total Soal','Benar','Skor',
+                       'Jml Pelanggaran','Detail Jawaban','Detail Pelanggaran']);
+    }
+    var violations = data.violations || [];
+    sheet.appendRow([
+      data.timestamp, data.subbab, data.nama, data.nim,
+      data.offering, data.email, data.wa,
+      data.n_soal, data.benar, data.score,
+      violations.length,
+      JSON.stringify(data.answers),
+      JSON.stringify(violations)
+    ]);
+
+    return ContentService
+      .createTextOutput(JSON.stringify({status:'ok'}))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch(err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({status:'error',msg:err.message}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}</div>
+        <p class="small text-muted mt-2">
+          <strong>Langkah deploy:</strong>
+          Buka Google Sheets → Extensions → Apps Script → paste kode di atas →
+          Deploy → New deployment → Web app → Execute as: Me → Who has access: Anyone → Deploy.
+          Salin URL deployment ke field di atas.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-5 pt-3 border-top text-center text-muted small">
+    Pretest Kalkulus — Universitas Negeri Malang | Dibuat untuk keperluan akademik
+  </div>
+</div><!-- /dashboard -->
+
+<!-- ============================================================ -->
+<!-- JAVASCRIPT                                                    -->
+<!-- ============================================================ -->
+<script>
+/* ===== KONSTANTA ===== */
+const DEFAULT_ADMIN_PWD = 'admin2024';
+const LS_PREFIX = 'kalk15_';
+
+// Data sub-bab yang tersedia
+const SUBBAB_INFO = {
+  '15.1': {
+    nama: 'Sub-bab 15.1 — Integral Ganda pada Persegi Panjang',
+    totalSoal: 36
+  }
+  // Tambahkan 15.2, 15.3 dst di sini setelah soal disiapkan
+};
+
+/* ===== ADMIN AUTH ===== */
+function getAdminPwd() {
+  return localStorage.getItem(LS_PREFIX + 'admin_pwd') || DEFAULT_ADMIN_PWD;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('adminPwdInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doLogin();
+  });
+  // Load saved webhook URL
+  const saved = localStorage.getItem(LS_PREFIX + 'webhook_url') || '';
+  if (saved) document.getElementById('webhookUrl') && (document.getElementById('webhookUrl').value = saved);
+});
+
+function doLogin() {
+  const val = document.getElementById('adminPwdInput').value;
+  if (val === getAdminPwd()) {
+    document.getElementById('loginWrapper').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    renderSubbab();
+    // Load webhook URL after dashboard render
+    const wh = localStorage.getItem(LS_PREFIX + 'webhook_url') || '';
+    document.getElementById('webhookUrl').value = wh;
+  } else {
+    document.getElementById('loginError').style.display = 'block';
+    document.getElementById('adminPwdInput').select();
+  }
+}
+
+function doLogout() {
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('loginWrapper').style.display = '';
+  document.getElementById('adminPwdInput').value = '';
+  document.getElementById('loginError').style.display = 'none';
+  document.getElementById('linkCard').style.display = 'none';
+}
+
+function changeAdminPwd() {
+  const p = prompt('Password admin baru (minimal 6 karakter):');
+  if (p === null) return;
+  if (p.length < 6) { alert('Password terlalu pendek (minimal 6 karakter).'); return; }
+  localStorage.setItem(LS_PREFIX + 'admin_pwd', p);
+  alert('✅ Password berhasil diubah!');
+}
+
+/* ===== RENDER SUB-BAB ===== */
+function getConfig(sb) {
+  const s = localStorage.getItem(LS_PREFIX + 'cfg_' + sb);
+  return s ? JSON.parse(s) : { n: 10, durasi: 30, pwd: '' };
+}
+
+function renderSubbab() {
+  let html = '';
+  for (const [id, info] of Object.entries(SUBBAB_INFO)) {
+    const cfg = getConfig(id);
+    html += `
+    <div class="card mb-3 subbab-card shadow-sm border-0">
+      <div class="card-header bg-white py-2 px-3 d-flex justify-content-between align-items-center">
+        <span class="fw-semibold text-primary">${info.nama}</span>
+        <span class="badge bg-secondary">${info.totalSoal} soal tersedia</span>
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-sm-4">
+            <label class="form-label small fw-semibold">Jumlah soal yang keluar</label>
+            <input type="number" id="n_${id}" class="form-control" value="${cfg.n}"
+                   min="1" max="${info.totalSoal}">
+            <div class="form-text">Maks: ${info.totalSoal} soal</div>
+          </div>
+          <div class="col-sm-4">
+            <label class="form-label small fw-semibold">Durasi (menit, 0 = tanpa batas)</label>
+            <input type="number" id="dur_${id}" class="form-control" value="${cfg.durasi}" min="0">
+          </div>
+          <div class="col-sm-4">
+            <label class="form-label small fw-semibold">Password mahasiswa</label>
+            <input type="text" id="pwd_${id}" class="form-control" value="${cfg.pwd}"
+                   placeholder="cth: pretest15a" autocomplete="off">
+            <div class="form-text">Dibagikan ke mhs sebelum ujian</div>
+          </div>
+        </div>
+        <div class="mt-3 d-flex flex-wrap gap-2">
+          <button class="btn btn-primary fw-semibold" onclick="generateLink('${id}')">
+            🔗 Generate Link Ujian
+          </button>
+          <button class="btn btn-outline-secondary btn-sm" onclick="saveOnly('${id}')">
+            💾 Simpan Konfigurasi
+          </button>
+        </div>
+      </div>
+    </div>`;
+  }
+  document.getElementById('subbabContainer').innerHTML = html;
+}
+
+function saveOnly(sb) {
+  if (!validateForm(sb)) return;
+  const n = +document.getElementById('n_' + sb).value;
+  const durasi = +document.getElementById('dur_' + sb).value;
+  const pwd = document.getElementById('pwd_' + sb).value.trim();
+  localStorage.setItem(LS_PREFIX + 'cfg_' + sb, JSON.stringify({ n, durasi, pwd }));
+  alert('✅ Konfigurasi disimpan!');
+}
+
+function validateForm(sb) {
+  const info = SUBBAB_INFO[sb];
+  const n = +document.getElementById('n_' + sb).value;
+  const dur = +document.getElementById('dur_' + sb).value;
+  if (!n || n < 1 || n > info.totalSoal) {
+    alert('Jumlah soal harus antara 1 dan ' + info.totalSoal + '.'); return false;
+  }
+  if (isNaN(dur) || dur < 0) {
+    alert('Durasi tidak valid.'); return false;
+  }
+  return true;
+}
+
+/* ===== LINK GENERATOR ===== */
+async function sha256(text) {
+  const enc = new TextEncoder();
+  const hash = await crypto.subtle.digest('SHA-256', enc.encode(text));
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function generateLink(sb) {
+  if (!validateForm(sb)) return;
+  const info = SUBBAB_INFO[sb];
+  const n = +document.getElementById('n_' + sb).value;
+  const durasi = +document.getElementById('dur_' + sb).value;
+  const pwd = document.getElementById('pwd_' + sb).value.trim();
+
+  if (!pwd) {
+    if (!confirm('⚠️ Password mahasiswa kosong.\nSiapapun bisa mengakses ujian tanpa password.\nLanjutkan?')) return;
+  }
+
+  // Simpan config
+  localStorage.setItem(LS_PREFIX + 'cfg_' + sb, JSON.stringify({ n, durasi, pwd }));
+
+  // Hash password
+  const hashedPwd = pwd ? await sha256(pwd) : '';
+
+  // Buat config payload
+  const cfg = { sb, n, d: durasi, p: hashedPwd, ts: Date.now() };
+  const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(cfg))));
+
+  // Buat URL (admin.html dan ujian.html harus di folder yang sama)
+  const ujianBase = window.location.href.replace(/\/[^\/]*(\?.*)?$/, '/ujian.html');
+  const link = ujianBase + '#config=' + encodeURIComponent(encoded);
+
+  document.getElementById('generatedLinkText').textContent = link;
+  document.getElementById('linkMeta').innerHTML =
+    `Sub-bab: <strong>${sb}</strong> &nbsp;|&nbsp; ` +
+    `Soal: <strong>${n}</strong> dari ${info.totalSoal} &nbsp;|&nbsp; ` +
+    `Durasi: <strong>${durasi > 0 ? durasi + ' menit' : 'tanpa batas'}</strong> &nbsp;|&nbsp; ` +
+    `Password: <strong>${pwd ? '****' : 'tidak ada'}</strong> &nbsp;|&nbsp; ` +
+    `Dibuat: <strong>${new Date().toLocaleString('id-ID')}</strong>`;
+  document.getElementById('linkCard').style.display = 'block';
+  document.getElementById('linkCard').scrollIntoView({ behavior: 'smooth' });
+}
+
+function copyLink() {
+  const txt = document.getElementById('generatedLinkText').textContent;
+  navigator.clipboard.writeText(txt).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = txt; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+  });
+  alert('✅ Link berhasil disalin ke clipboard!');
+}
+
+function openLink() {
+  const link = document.getElementById('generatedLinkText').textContent;
+  if (link) window.open(link, '_blank');
+}
+
+/* ===== WEBHOOK ===== */
+let webhookOpen = true;
+function toggleWebhook() {
+  webhookOpen = !webhookOpen;
+  document.getElementById('webhookBody').style.display = webhookOpen ? 'block' : 'none';
+  document.getElementById('webhookToggleIcon').textContent = webhookOpen ? '▲' : '▼';
+}
+
+function saveWebhook() {
+  const url = document.getElementById('webhookUrl').value.trim();
+  localStorage.setItem(LS_PREFIX + 'webhook_url', url);
+  alert(url ? '✅ URL webhook disimpan!' : '✅ URL webhook dihapus.');
+}
+
+async function testWebhook() {
+  const url = document.getElementById('webhookUrl').value.trim();
+  if (!url) { alert('Isi URL webhook terlebih dahulu.'); return; }
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'test', timestamp: new Date().toISOString() })
+    });
+    const text = await res.text();
+    alert('✅ Koneksi berhasil!\nResponse: ' + text.substring(0, 200));
+  } catch (err) {
+    alert('❌ Gagal terhubung:\n' + err.message +
+          '\n\nPastikan Apps Script sudah di-deploy sebagai "Anyone" dan URL sudah benar.');
+  }
+}
+</script>
+</body>
+</html>

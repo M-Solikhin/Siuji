@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pretest Kalkulus — Integral Ganda</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<script>
+MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+    packages: {'[+]': ['ams', 'boldsymbol']}
+  },
+  options: {
+    skipHtmlTags: ['script','noscript','style','textarea','pre']
+  }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+<style>
+  body { background: #f4f6fb; font-family: 'Segoe UI', sans-serif; }
+  .screen { display: none; }
+  .screen.active { display: block; }
+  .header-brand {
+    background: linear-gradient(135deg, #003366 0%, #0055a5 100%);
+    color: white; padding: 18px 24px; border-radius: 12px 12px 0 0;
+    margin-bottom: 0;
+  }
+  .header-brand h4 { margin: 0; font-weight: 700; font-size: 1.1rem; }
+  .header-brand small { opacity: 0.85; font-size: 0.82rem; }
+  .card-main {
+    border: none; border-radius: 0 0 12px 12px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+  }
+  .btn-primary { background: #003366; border-color: #003366; }
+  .btn-primary:hover { background: #0055a5; border-color: #0055a5; }
+  .timer-box {
+    background: #003366; color: white; border-radius: 8px;
+    padding: 6px 18px; font-size: 1.1rem; font-weight: 700;
+    display: inline-block; letter-spacing: 1px;
+  }
+  .timer-box.urgent { background: #c0392b; animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.7} }
+  .soal-card {
+    background: #f8f9ff; border: 1px solid #dde3f0;
+    border-radius: 10px; padding: 20px 22px; margin-bottom: 10px;
+  }
+  .soal-nomor {
+    font-weight: 700; color: #003366; font-size: 0.95rem;
+    margin-bottom: 8px;
+  }
+  .option-btn {
+    display: block; width: 100%; text-align: center;
+    background: white; border: 2px solid #c5cfe0;
+    border-radius: 8px; padding: 10px 14px; margin-bottom: 8px;
+    cursor: pointer; transition: all 0.15s; font-size: 1rem;
+  }
+  .option-btn:hover { border-color: #0055a5; background: #eef3ff; }
+  .option-btn.selected { border-color: #003366; background: #dce8ff; font-weight: 600; }
+  .nav-soal {
+    display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px;
+  }
+  .nav-soal button {
+    width: 36px; height: 36px; border-radius: 6px;
+    border: 2px solid #c5cfe0; background: white;
+    font-size: 0.82rem; font-weight: 600; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .nav-soal button.answered { background: #003366; color: white; border-color: #003366; }
+  .nav-soal button.current { border-color: #0055a5; box-shadow: 0 0 0 2px #aac4ff; }
+  .recap-table th { background: #003366; color: white; font-size: 0.85rem; }
+  .recap-table td { font-size: 0.88rem; vertical-align: middle; }
+  .benar { color: #1a7a3a; font-weight: 700; }
+  .salah { color: #c0392b; font-weight: 700; }
+  .skor-box {
+    background: linear-gradient(135deg, #003366, #0055a5);
+    color: white; border-radius: 12px; padding: 20px;
+    text-align: center; margin-bottom: 20px;
+  }
+  .skor-box .angka { font-size: 3rem; font-weight: 800; }
+  .violation-badge {
+    background: #fff3cd; border: 1px solid #ffc107;
+    border-radius: 6px; padding: 6px 12px; font-size: 0.82rem;
+    margin-top: 8px; display: inline-block;
+  }
+  #violation-warning {
+    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.75); z-index: 9999;
+    justify-content: center; align-items: center;
+  }
+  #violation-warning.show { display: flex; }
+  #violation-warning .box {
+    background: white; border-radius: 12px; padding: 32px 36px;
+    max-width: 400px; text-align: center;
+  }
+  .container-sm { max-width: 680px; }
+</style>
+</head>
+<body>
+<div class="container container-sm py-4">
+
+<!-- SCREEN: ERROR -->
+<div id="screen-error" class="screen">
+  <div class="header-brand">
+    <h4>⚠️ Pretest Kalkulus</h4>
+  </div>
+  <div class="card card-main p-4 text-center">
+    <p class="text-danger fw-bold fs-5 mt-2" id="error-msg">Link ujian tidak valid.</p>
+    <p class="text-muted small">Pastikan Anda membuka link yang diberikan dosen secara lengkap.</p>
+  </div>
+</div>
+
+<!-- SCREEN: PASSWORD -->
+<div id="screen-password" class="screen">
+  <div class="header-brand">
+    <h4>🔐 Pretest Kalkulus — Integral Ganda</h4>
+    <small id="pwd-subbab-label">Sub-bab 15.1</small>
+  </div>
+  <div class="card card-main p-4">
+    <p class="text-muted mb-3">Masukkan password ujian yang diberikan dosen Anda:</p>
+    <input type="password" id="pwdInput" class="form-control mb-2" placeholder="Password ujian..."
+           onkeydown="if(event.key==='Enter')checkPassword()">
+    <div id="pwd-error" class="text-danger small mb-2" style="display:none">
+      ❌ Password salah. Coba lagi.
+    </div>
+    <button class="btn btn-primary w-100" onclick="checkPassword()">Masuk</button>
+  </div>
+</div>
+
+<!-- SCREEN: IDENTITY -->
+<div id="screen-identity" class="screen">
+  <div class="header-brand">
+    <h4>📝 Data Mahasiswa</h4>
+    <small id="id-subbab-label">Sub-bab 15.1</small>
+  </div>
+  <div class="card card-main p-4">
+    <p class="text-muted small mb-3">Isi data diri Anda dengan lengkap dan benar sebelum memulai ujian.</p>
+    <div class="mb-3">
+      <label class="form-label fw-semibold">Nama Lengkap</label>
+      <input type="text" id="f-nama" class="form-control" placeholder="Nama lengkap sesuai KTM">
+    </div>
+    <div class="mb-3">
+      <label class="form-label fw-semibold">NIM</label>
+      <input type="text" id="f-nim" class="form-control" placeholder="NIM (10 digit)">
+    </div>
+    <div class="mb-3">
+      <label class="form-label fw-semibold">Offering</label>
+      <input type="text" id="f-offering" class="form-control" placeholder="Contoh: A, B, C, ...">
+    </div>
+    <div class="mb-3">
+      <label class="form-label fw-semibold">Email UM</label>
+      <input type="email" id="f-email" class="form-control" placeholder="nim@students.um.ac.id">
+    </div>
+    <div class="mb-3">
+      <label class="form-label fw-semibold">No. WhatsApp</label>
+      <input type="text" id="f-wa" class="form-control" placeholder="08xxxxxxxxxx">
+    </div>
+    <div id="id-error" class="text-danger small mb-2" style="display:none"></div>
+    <button class="btn btn-primary w-100 mt-2" onclick="startExam()">Mulai Ujian →</button>
+  </div>
+</div>
+
+<!-- SCREEN: EXAM -->
+<div id="screen-exam" class="screen">
+  <div class="header-brand d-flex justify-content-between align-items-center">
+    <div>
+      <h4 style="margin:0" id="exam-title">Pretest Sub-bab 15.1</h4>
+      <small id="exam-student-name">—</small>
+    </div>
+    <div id="timer-display" class="timer-box">--:--</div>
+  </div>
+  <div class="card card-main p-3">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <div class="nav-soal" id="nav-soal"></div>
+    </div>
+    <div id="soal-container"></div>
+    <div class="d-flex justify-content-between mt-3">
+      <button class="btn btn-outline-secondary" id="btn-prev" onclick="gotoSoal(examState.current-1)">◀ Sebelumnya</button>
+      <button class="btn btn-outline-primary" id="btn-next" onclick="gotoSoal(examState.current+1)">Selanjutnya ▶</button>
+    </div>
+    <div class="mt-3 border-top pt-3">
+      <button class="btn btn-success w-100" onclick="confirmSubmit()">✅ Selesai &amp; Kumpulkan Jawaban</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN: RECAP -->
+<div id="screen-recap" class="screen">
+  <div class="header-brand">
+    <h4>📊 Hasil Pretest</h4>
+    <small id="recap-student-label">—</small>
+  </div>
+  <div class="card card-main p-4">
+    <div class="skor-box">
+      <div class="small mb-1">Skor Akhir</div>
+      <div class="angka" id="recap-skor">—</div>
+      <div class="small mt-1" id="recap-benar-label">— dari — soal benar</div>
+    </div>
+    <div id="recap-violations" class="mb-3"></div>
+    <div class="table-responsive">
+      <table class="table table-bordered recap-table" id="recap-table">
+        <thead>
+          <tr>
+            <th style="width:40px">No</th>
+            <th>Soal</th>
+            <th>Jawaban Anda</th>
+            <th>Jawaban Benar</th>
+            <th style="width:40px">✓✗</th>
+          </tr>
+        </thead>
+        <tbody id="recap-tbody"></tbody>
+      </table>
+    </div>
+    <p class="text-muted small text-center mt-3">
+      Jawaban Anda telah dikirim ke dosen. Terima kasih telah mengikuti pretest.
+    </p>
+  </div>
+</div>
+
+</div><!-- /container -->
+
+<!-- VIOLATION WARNING OVERLAY -->
+<div id="violation-warning">
+  <div class="box">
+    <div style="font-size:2.5rem">⚠️</div>
+    <h5 class="mt-2 mb-2">Peringatan!</h5>
+    <p class="text-muted small" id="violation-msg">Anda terdeteksi berpindah tab atau jendela.</p>
+    <p class="text-muted small">Pelanggaran ini telah dicatat.</p>
+    <button class="btn btn-danger w-100" onclick="dismissViolationWarning()">Kembali ke Ujian</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// ANSWER POOL (30 unique values)
+// ═══════════════════════════════════════════════════════
+const ANSWER_POOL = [
+  { key: "24",           latex: "24" },
+  { key: "4",            latex: "4" },
+  { key: "1",            latex: "1" },
+  { key: "2/3",          latex: "\\dfrac{2}{3}" },
+  { key: "16",           latex: "16" },
+  { key: "0",            latex: "0" },
+  { key: "2ln2-1",       latex: "2\\ln 2 - 1" },
+  { key: "92/3",         latex: "\\dfrac{92}{3}" },
+  { key: "3(5-e)/2",     latex: "\\dfrac{3(5-e)}{2}" },
+  { key: "3/2",          latex: "\\dfrac{3}{2}" },
+  { key: "2pi",          latex: "2\\pi" },
+  { key: "ln2",          latex: "\\ln 2" },
+  { key: "3ln2-3/2",     latex: "3\\ln 2 - \\dfrac{3}{2}" },
+  { key: "14",           latex: "14" },
+  { key: "8/3",          latex: "\\dfrac{8}{3}" },
+  { key: "1/2",          latex: "\\dfrac{1}{2}" },
+  { key: "(e2-3)/2",     latex: "\\dfrac{e^2-3}{2}" },
+  { key: "2ln2",         latex: "2\\ln 2" },
+  { key: "pi/4-ln2/2",   latex: "\\dfrac{\\pi}{4} - \\dfrac{\\ln 2}{2}" },
+  { key: "(ln2)2",       latex: "(\\ln 2)^2" },
+  { key: "2/pi",         latex: "\\dfrac{2}{\\pi}" },
+  { key: "160/3",        latex: "\\dfrac{160}{3}" },
+  { key: "sqrt2",        latex: "\\sqrt{2}" },
+  { key: "16/3",         latex: "\\dfrac{16}{3}" },
+  { key: "2/27",         latex: "\\dfrac{2}{27}" },
+  { key: "(3ln3-2)/2",   latex: "\\dfrac{3\\ln 3 - 2}{2}" },
+  { key: "e3-4",         latex: "e^3 - 4" },
+  { key: "1/3",          latex: "\\dfrac{1}{3}" },
+  { key: "-2/3",         latex: "-\\dfrac{2}{3}" },
+  { key: "f(x,y)",       latex: "f(x,y)" }
+];
+
+
+// ─── SOAL_BANK ───────────────────────────────────────────────────────────────
+const SOAL_BANK = {
+  '15.1': [
+    { id:1,  q:"\\(\\displaystyle\\int_{1}^{2} \\int_{0}^{4} 2xy \\,dy\\,dx\\)", kunci:"24" },
+    { id:2,  q:"\\(\\displaystyle\\int_{0}^{2} \\int_{-1}^{1} (x - y) \\,dy\\,dx\\)", kunci:"4" },
+    { id:3,  q:"\\(\\displaystyle\\int_{-1}^{0} \\int_{-1}^{1} (x + y + 1) \\,dx\\,dy\\)", kunci:"1" },
+    { id:4,  q:"\\(\\displaystyle\\int_{0}^{1} \\int_{0}^{1} \\left(1 - \\dfrac{x^2 + y^2}{2}\\right) \\,dx\\,dy\\)", kunci:"2/3" },
+    { id:5,  q:"\\(\\displaystyle\\int_{0}^{3} \\int_{0}^{2} (4 - y^2) \\,dy\\,dx\\)", kunci:"16" },
+    { id:6,  q:"\\(\\displaystyle\\int_{0}^{3} \\int_{-2}^{0} (x^2 y - 2xy) \\,dy\\,dx\\)", kunci:"0" },
+    { id:7,  q:"\\(\\displaystyle\\int_{0}^{1} \\int_{0}^{1} \\dfrac{y}{1 + xy} \\,dx\\,dy\\)", kunci:"2ln2-1" },
+    { id:8,  q:"\\(\\displaystyle\\int_{1}^{4} \\int_{0}^{4} \\left(\\dfrac{x}{2} + \\sqrt{y}\\right) \\,dx\\,dy\\)", kunci:"92/3" },
+    { id:9,  q:"\\(\\displaystyle\\int_{0}^{\\ln 2} \\int_{1}^{\\ln 5} e^{2x+y} \\,dy\\,dx\\)", kunci:"3(5-e)/2" },
+    { id:10, q:"\\(\\displaystyle\\int_{0}^{1} \\int_{1}^{2} xy e^{x} \\,dy\\,dx\\)", kunci:"3/2" },
+    { id:11, q:"\\(\\displaystyle\\int_{-1}^{2} \\int_{0}^{\\pi/2} y \\sin x \\,dx\\,dy\\)", kunci:"3/2" },
+    { id:12, q:"\\(\\displaystyle\\int_{\\pi}^{2\\pi} \\int_{0}^{\\pi} (\\sin x + \\cos y) \\,dx\\,dy\\)", kunci:"2pi" },
+    { id:13, q:"\\(\\displaystyle\\int_{1}^{4} \\int_{1}^{e} \\dfrac{\\ln x}{xy} \\,dx\\,dy\\)", kunci:"ln2" },
+    { id:14, q:"\\(\\displaystyle\\int_{-1}^{2} \\int_{1}^{2} x \\ln y \\,dy\\,dx\\)", kunci:"3ln2-3/2" },
+    { id:15, q:"Hitung \\(\\iint_{R} (6y^2 - 2x)\\,dA\\), dengan \\(R: 0\\leq x\\leq 1,\\; 0\\leq y\\leq 2\\).", kunci:"14" },
+    { id:16, q:"Hitung \\(\\iint_{R} \\dfrac{\\sqrt{x}}{y^2}\\,dA\\), dengan \\(R: 0\\leq x\\leq 4,\\; 1\\leq y\\leq 2\\).", kunci:"8/3" },
+    { id:17, q:"Hitung \\(\\iint_{R} xy\\cos y\\,dA\\), dengan \\(R: -1\\leq x\\leq 1,\\; 0\\leq y\\leq \\pi\\).", kunci:"0" },
+    { id:18, q:"Hitung \\(\\iint_{R} y\\sin(x+y)\\,dA\\), dengan \\(R: -\\pi\\leq x\\leq 0,\\; 0\\leq y\\leq \\pi\\).", kunci:"4" },
+    { id:19, q:"Hitung \\(\\iint_{R} e^{x-y}\\,dA\\), dengan \\(R: 0\\leq x\\leq \\ln 2,\\; 0\\leq y\\leq \\ln 2\\).", kunci:"1/2" },
+    { id:20, q:"Hitung \\(\\iint_{R} xye^{xy^2}\\,dA\\), dengan \\(R: 0\\leq x\\leq 2,\\; 0\\leq y\\leq 1\\).", kunci:"(e2-3)/2" },
+    { id:21, q:"Hitung \\(\\iint_{R} \\dfrac{xy^3}{x^2+1}\\,dA\\), dengan \\(R: 0\\leq x\\leq 1,\\; 0\\leq y\\leq 2\\).", kunci:"2ln2" },
+    { id:22, q:"Hitung \\(\\iint_{R} \\dfrac{y}{x^2y^2+1}\\,dA\\), dengan \\(R: 0\\leq x\\leq 1,\\; 0\\leq y\\leq 1\\).", kunci:"pi/4-ln2/2" },
+    { id:23, q:"Hitung \\(\\iint_{R} \\dfrac{1}{xy}\\,dA\\), dengan \\(R: 1\\leq x\\leq 2,\\; 1\\leq y\\leq 2\\).", kunci:"(ln2)2" },
+    { id:24, q:"Hitung \\(\\iint_{R} y\\cos(xy)\\,dA\\), dengan \\(R: 0\\leq x\\leq \\pi,\\; 0\\leq y\\leq 1\\).", kunci:"2/pi" },
+    { id:25, q:"Tentukan volume benda yang dibatasi permukaan \\(z = x^2+y^2\\) di atas daerah \\(R: -1\\leq x\\leq 1,\\; -1\\leq y\\leq 1\\).", kunci:"8/3" },
+    { id:26, q:"Tentukan volume benda yang dibatasi permukaan \\(z = 16-x^2-y^2\\) di atas daerah \\(R: 0\\leq x\\leq 2,\\; 0\\leq y\\leq 2\\).", kunci:"160/3" },
+    { id:27, q:"Tentukan volume benda yang dibatasi permukaan \\(z = 2-x-y\\) di atas daerah \\(R: 0\\leq x\\leq 1,\\; 0\\leq y\\leq 1\\).", kunci:"1" },
+    { id:28, q:"Tentukan volume benda yang dibatasi permukaan \\(z = y/2\\) di atas daerah \\(R: 0\\leq x\\leq 4,\\; 0\\leq y\\leq 2\\).", kunci:"4" },
+    { id:29, q:"Tentukan volume benda yang dibatasi permukaan \\(z = 2\\sin x\\cos y\\) di atas daerah \\(R: 0\\leq x\\leq \\pi/2,\\; 0\\leq y\\leq \\pi/4\\).", kunci:"sqrt2" },
+    { id:30, q:"Tentukan volume benda yang dibatasi permukaan \\(z = 4-y^2\\) di atas daerah \\(R: 0\\leq x\\leq 1,\\; 0\\leq y\\leq 2\\).", kunci:"16/3" },
+    { id:31, q:"Tentukan nilai konstanta \\(k\\) sehingga \\(\\displaystyle\\int_{1}^{2}\\int_{0}^{3} kx^2 y\\,dx\\,dy = 1\\).", kunci:"2/27" },
+    { id:32, q:"Hitunglah \\(\\displaystyle\\int_{-1}^{1}\\int_{0}^{\\pi/2} x\\sin\\sqrt{y}\\,dy\\,dx\\).", kunci:"0" },
+    { id:33, q:"Gunakan Teorema Fubini untuk menghitung \\(\\displaystyle\\int_{0}^{2}\\int_{0}^{1} \\dfrac{x}{1+xy}\\,dx\\,dy\\).", kunci:"(3ln3-2)/2" },
+    { id:34, q:"Gunakan Teorema Fubini untuk menghitung \\(\\displaystyle\\int_{0}^{1}\\int_{0}^{3} xe^{xy}\\,dx\\,dy\\).", kunci:"e3-4" },
+    { id:'35a', q:"Hitung \\(\\displaystyle\\int_{0}^{1}\\int_{0}^{2}\\dfrac{y-x}{(x+y)^3}\\,dx\\,dy\\).", kunci:"1/3" },
+    { id:'35b', q:"Hitung \\(\\displaystyle\\int_{0}^{2}\\int_{0}^{1}\\dfrac{y-x}{(x+y)^3}\\,dy\\,dx\\).", kunci:"-2/3" },
+    {
+      id: 36,
+      q: "Misalkan \\(f(x,y)\\) kontinu pada \\(R: a \\leq x \\leq b,\\; c \\leq y \\leq d\\) dan \\(F(x,y) = \\displaystyle\\int_{a}^{x}\\int_{c}^{y} f(u,v)\\,dv\\,du\\). Pada interior \\(R\\), tentukan turunan parsial kedua \\(F_{xy}\\) dan \\(F_{yx}\\).",
+      kunci: "f(x,y)",
+      fixedOptions: [
+        { key: "f(x,y)",  latex: "f(x,y)" },
+        { key: "F(x,y)",  latex: "F(x,y)" },
+        { key: "0",       latex: "0" },
+        { key: "fxfy",    latex: "f_x(x,y) \\cdot f_y(x,y)" },
+        { key: "fxy_ne",  latex: "F_{xy} \\neq F_{yx}" }
+      ]
+    }
+  ]
+};
+
+// ─── Mulberry32 PRNG ─────────────────────────────────────────────────────────
+function nimSeed(str) {
+  // FNV-1a hash → 32-bit unsigned integer
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  return h;
+}
+
+function seededRandom(seed) {
+  let s = seed >>> 0;
+  return function () {
+    s += 0x6D2B79F5;
+    let t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// ─── Fisher-Yates shuffle ─────────────────────────────────────────────────────
+function shuffle(arr, rng) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ─── SHA-256 (Web Crypto API) ─────────────────────────────────────────────────
+async function sha256(message) {
+  const msgBuffer = new TextEncoder().encode(message);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  return Array.from(new Uint8Array(hashBuffer))
+    .map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// ─── State ujian ──────────────────────────────────────────────────────────────
+const examState = {
+  config:        null,
+  student:       null,
+  soal:          [],
+  answers:       {},
+  current:       0,
+  startTime:     null,
+  timerInterval: null,
+  violations:    []
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
+  const el = document.getElementById(id);
+  if (el) el.style.display = 'block';
+}
+
+function parseConfig() {
+  const hash = window.location.hash;
+  if (!hash || !hash.startsWith('#config=')) return null;
+  try {
+    const encoded = decodeURIComponent(hash.slice(8));
+    return JSON.parse(decodeURIComponent(escape(atob(encoded))));
+  } catch (e) {
+    return null;
+  }
+}
+
+function getLatexForKey(soalObj, key) {
+  if (!key) return '\\text{-}';
+  if (soalObj && soalObj.fixedOptions) {
+    const opt = soalObj.fixedOptions.find(o => o.key === key);
+    if (opt) return opt.latex;
+  }
+  const entry = ANSWER_POOL.find(a => a.key === key);
+  return entry ? entry.latex : key;
+}
+
+// ─── Screen: Password ─────────────────────────────────────────────────────────
+async function checkPassword() {
+  const pwd   = document.getElementById('pwdInput').value.trim();
+  const errEl = document.getElementById('pwd-error');
+  if (!pwd) {
+    errEl.textContent = 'Masukkan password terlebih dahulu.';
+    errEl.style.display = 'block';
+    return;
+  }
+  const hashed = await sha256(pwd);
+  if (hashed === examState.config.p) {
+    errEl.style.display = 'none';
+    showScreen('screen-identity');
+  } else {
+    errEl.textContent = 'Password salah. Silakan coba lagi.';
+    errEl.style.display = 'block';
+  }
+}
+
+// ─── Screen: Identitas & Inisialisasi Ujian ───────────────────────────────────
+function startExam() {
+  const nama     = document.getElementById('f-nama').value.trim();
+  const nim      = document.getElementById('f-nim').value.trim();
+  const offering = document.getElementById('f-offering').value.trim();
+  const email    = document.getElementById('f-email').value.trim();
+  const wa       = document.getElementById('f-wa').value.trim();
+  const errEl    = document.getElementById('id-error');
+
+  if (!nama || !nim || !offering || !email || !wa) {
+    errEl.textContent = 'Semua kolom wajib diisi.';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (!email.toLowerCase().endsWith('@students.um.ac.id')) {
+    errEl.textContent = 'Email harus menggunakan domain @students.um.ac.id';
+    errEl.style.display = 'block';
+    return;
+  }
+  errEl.style.display = 'none';
+
+  examState.student    = { nama, nim, offering, email, wa };
+  examState.answers    = {};
+  examState.current    = 0;
+  examState.startTime  = Date.now();
+  examState.violations = [];
+
+  // Acak soal berdasarkan NIM (deterministik — NIM sama → soal sama)
+  const pool = SOAL_BANK[examState.config.sb] || [];
+  const rng  = seededRandom(nimSeed(nim));
+  const n    = Math.min(Number(examState.config.n), pool.length);
+  const selectedSoal = shuffle(pool, rng).slice(0, n);
+
+  // Bangun opsi per soal (acak per NIM + per soal, deduplikasi key)
+  examState.soal = selectedSoal.map(s => {
+    const rngOpt = seededRandom(nimSeed(nim + '|' + String(s.id)));
+    if (s.fixedOptions) {
+      return Object.assign({}, s, { options: shuffle(s.fixedOptions, rngOpt) });
+    }
+    const correctEntry = ANSWER_POOL.find(a => a.key === s.kunci);
+    const seenKeys = new Set([s.kunci]);
+    const uniqueDistractors = ANSWER_POOL.filter(a => {
+      if (seenKeys.has(a.key)) return false;
+      seenKeys.add(a.key);
+      return true;
+    });
+    const distractors = shuffle(uniqueDistractors, rngOpt).slice(0, 4);
+    const opts = [correctEntry].concat(distractors);
+    const rngShuffle = seededRandom(nimSeed(nim + '|opt|' + String(s.id)));
+    return Object.assign({}, s, { options: shuffle(opts, rngShuffle) });
+  });
+
+  document.getElementById('exam-title').textContent =
+    'Integral Ganda — Sub-bab ' + examState.config.sb;
+  document.getElementById('exam-student-name').textContent =
+    nama + '  (' + nim + ')';
+
+  showScreen('screen-exam');
+  renderNav();
+  renderSoal(0);
+  startTimer();
+  setupAntiCheat();
+}
+
+// ─── Navigasi soal ────────────────────────────────────────────────────────────
+function renderNav() {
+  const nav = document.getElementById('nav-soal');
+  if (!nav) return;
+  nav.innerHTML = '';
+  examState.soal.forEach((s, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'nav-btn' +
+      (examState.answers[i] !== undefined ? ' answered' : '') +
+      (i === examState.current ? ' active' : '');
+    btn.textContent = i + 1;
+    btn.onclick = function () { gotoSoal(i); };
+    nav.appendChild(btn);
+  });
+}
+
+function renderSoal(idx) {
+  if (idx < 0 || idx >= examState.soal.length) return;
+  examState.current = idx;
+  const s          = examState.soal[idx];
+  const total      = examState.soal.length;
+  const container  = document.getElementById('soal-container');
+  const userAnswer = examState.answers[idx];
+
+  const optHtml = s.options.map(function (opt) {
+    const checked = userAnswer === opt.key ? 'checked' : '';
+    return '<label class="option-label">' +
+      '<input type="radio" name="soal_' + idx + '" data-key="' + opt.key + '" ' + checked + '>' +
+      '<span class="opt-math">\\(' + opt.latex + '\\)</span>' +
+      '</label>';
+  }).join('');
+
+  container.innerHTML =
+    '<div class="soal-nomor">Soal <strong>' + (idx + 1) + '</strong> dari ' + total + '</div>' +
+    '<div class="soal-teks">' + s.q + '</div>' +
+    '<div class="opsi-list">' + optHtml + '</div>';
+
+  container.querySelectorAll('input[type=radio]').forEach(function (radio) {
+    radio.addEventListener('change', function () {
+      examState.answers[idx] = radio.dataset.key;
+      renderNav();
+    });
+  });
+
+  if (window.MathJax) {
+    MathJax.typesetPromise([container]).catch(function () {});
+  }
+
+  document.getElementById('btn-prev').disabled = (idx === 0);
+  document.getElementById('btn-next').disabled = (idx === total - 1);
+  renderNav();
+}
+
+function gotoSoal(idx) {
+  if (idx < 0 || idx >= examState.soal.length) return;
+  renderSoal(idx);
+}
+
+// ─── Timer ────────────────────────────────────────────────────────────────────
+function startTimer() {
+  const timerEl = document.getElementById('timer-display');
+  if (!timerEl) return;
+
+  const durasi = Number(examState.config.d);
+  if (!durasi || durasi <= 0) {
+    timerEl.textContent = '\u221e'; // ∞
+    return;
+  }
+
+  let remaining = durasi * 60;
+
+  function tick() {
+    const mins = String(Math.floor(remaining / 60)).padStart(2, '0');
+    const secs = String(remaining % 60).padStart(2, '0');
+    timerEl.textContent = mins + ':' + secs;
+    if (remaining <= 300) timerEl.classList.add('urgent');
+    if (remaining <= 0) {
+      clearInterval(examState.timerInterval);
+      submitExam(true);
+      return;
+    }
+    remaining--;
+  }
+
+  tick();
+  examState.timerInterval = setInterval(tick, 1000);
+}
+
+// ─── Anti-cheat ───────────────────────────────────────────────────────────────
+function setupAntiCheat() {
+  ['copy', 'contextmenu', 'beforeprint', 'selectstart', 'dragstart'].forEach(function (evt) {
+    document.addEventListener(evt, function (e) { e.preventDefault(); }, true);
+  });
+
+  document.addEventListener('keydown', function (e) {
+    const k = e.key ? e.key.toUpperCase() : '';
+    if (e.key === 'F12' ||
+        (e.ctrlKey && e.shiftKey && (k === 'I' || k === 'J' || k === 'C')) ||
+        (e.ctrlKey && k === 'U')) {
+      e.preventDefault();
+    }
+  }, true);
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) {
+      examState.violations.push({ type: 'tab_switch', time: new Date().toISOString() });
+      showViolationWarning('Anda berpindah tab! Tindakan ini telah dicatat.');
+    }
+  });
+
+  window.addEventListener('blur', function () {
+    examState.violations.push({ type: 'window_blur', time: new Date().toISOString() });
+  });
+
+  window.addEventListener('beforeunload', function () {
+    examState.violations.push({ type: 'page_leave', time: new Date().toISOString() });
+  });
+}
+
+function showViolationWarning(msg) {
+  const msgEl = document.getElementById('violation-msg');
+  if (msgEl) msgEl.textContent = msg;
+  const warnEl = document.getElementById('violation-warning');
+  if (warnEl) warnEl.classList.add('show');
+}
+
+function dismissViolationWarning() {
+  const warnEl = document.getElementById('violation-warning');
+  if (warnEl) warnEl.classList.remove('show');
+}
+
+// ─── Submit ───────────────────────────────────────────────────────────────────
+function confirmSubmit() {
+  const answered   = Object.keys(examState.answers).length;
+  const total      = examState.soal.length;
+  const unanswered = total - answered;
+  let msg = 'Anda akan mengumpulkan ujian.';
+  if (unanswered > 0) msg += '\nPeringatan: ' + unanswered + ' soal belum dijawab.';
+  msg += '\n\nLanjutkan?';
+  if (window.confirm(msg)) submitExam(false);
+}
+
+function submitExam(autoSubmit) {
+  if (examState.timerInterval) clearInterval(examState.timerInterval);
+
+  let benar = 0;
+  const details = examState.soal.map(function (s, i) {
+    const jawaban = examState.answers[i] !== undefined ? examState.answers[i] : null;
+    const correct = (jawaban === s.kunci);
+    if (correct) benar++;
+    return { nomor: i + 1, soal_id: s.id, jawaban: jawaban, kunci: s.kunci, correct: correct };
+  });
+
+  const total = examState.soal.length;
+  const skor  = total > 0 ? Math.round((benar / total) * 100) : 0;
+
+  showRecap(details, benar, total, skor);
+  sendWebhook(details, benar, total, skor);
+}
+
+// ─── Rekap ────────────────────────────────────────────────────────────────────
+function showRecap(details, benar, total, skor) {
+  const st = examState.student;
+
+  const labelEl = document.getElementById('recap-student-label');
+  if (labelEl) labelEl.textContent =
+    st.nama + '  |  NIM: ' + st.nim + '  |  Offering: ' + st.offering;
+
+  const skorEl = document.getElementById('recap-skor');
+  if (skorEl) skorEl.textContent = skor;
+
+  const benarEl = document.getElementById('recap-benar-label');
+  if (benarEl) benarEl.textContent = benar + ' dari ' + total + ' soal benar';
+
+  const violCount = examState.violations.filter(function (v) {
+    return v.type === 'tab_switch';
+  }).length;
+  const violEl = document.getElementById('recap-violations');
+  if (violEl) violEl.textContent = 'Jumlah perpindahan tab: ' + violCount;
+
+  const tbody = document.getElementById('recap-tbody');
+  if (tbody) {
+    tbody.innerHTML = details.map(function (d, i) {
+      const soalObj    = examState.soal[i];
+      const jawabLatex = getLatexForKey(soalObj, d.jawaban);
+      const kunciLatex = getLatexForKey(soalObj, d.kunci);
+      const rowClass   = d.correct ? 'table-success' : 'table-danger';
+      return '<tr class="' + rowClass + '">' +
+        '<td class="text-center">' + d.nomor + '</td>' +
+        '<td>' + soalObj.q + '</td>' +
+        '<td class="text-center">\\(' + jawabLatex + '\\)</td>' +
+        '<td class="text-center">\\(' + kunciLatex + '\\)</td>' +
+        '<td class="text-center fw-bold">' + (d.correct ? '\u2713' : '\u2717') + '</td>' +
+        '</tr>';
+    }).join('');
+  }
+
+  showScreen('screen-recap');
+
+  if (window.MathJax && tbody) {
+    MathJax.typesetPromise([tbody]).catch(function () {});
+  }
+}
+
+// ─── Webhook ke Google Sheets ─────────────────────────────────────────────────
+async function sendWebhook(details, benar, total, skor) {
+  const webhookUrl = localStorage.getItem(LS_PREFIX + 'webhook_url');
+  if (!webhookUrl) return;
+  const st = examState.student;
+  const payload = {
+    timestamp:  new Date().toISOString(),
+    subbab:     examState.config.sb,
+    nama:       st.nama,
+    nim:        st.nim,
+    offering:   st.offering,
+    email:      st.email,
+    wa:         st.wa,
+    n_soal:     total,
+    benar:      benar,
+    score:      skor,
+    answers:    details,
+    violations: examState.violations
+  };
+  try {
+    await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  } catch (e) {
+    console.warn('Webhook gagal:', e.message);
+  }
+}
+
+// ─── Inisialisasi ─────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function () {
+  const cfg = parseConfig();
+  if (!cfg || !cfg.sb || !SOAL_BANK[cfg.sb]) {
+    const errEl = document.getElementById('error-msg');
+    if (errEl) errEl.textContent =
+      'Link ujian tidak valid atau sub-bab tidak ditemukan. ' +
+      'Minta link yang benar kepada dosen Anda.';
+    showScreen('screen-error');
+    return;
+  }
+  examState.config = cfg;
+  showScreen('screen-password');
+});
+
+</script>
+</body>
+</html>
