@@ -429,7 +429,7 @@ const INTEGRAL_POOL_152_B = [
 ];
 
 // ── Lookup tabel pool per sub-bab ───────────────────────────────────────
-const POOLS = { '15.1': ANSWER_POOL, '15.2': ANSWER_POOL_152 };
+const POOLS = { '15.1': ANSWER_POOL, '15.2': ANSWER_POOL_152, 'PBM.1.1': ANSWER_POOL_PBM11, 'PBM.1.2': ANSWER_POOL_PBM12, 'PBM.1.3': ANSWER_POOL_PBM13, 'PBM.1.4': ANSWER_POOL_PBM14 };
 SOAL_BANK['15.2'] = [
   // ── Luas daerah via integral ganda (No.14-18) ───────────────────────────
   { id:1,  q:"Hitung luas daerah \\(R\\) yang dibatasi oleh \\(y=\\tan x\\), \\(x=0\\), dan \\(y=1\\).", kunci:"pi/4-ln2/2" },
@@ -459,6 +459,250 @@ SOAL_BANK['15.2'] = [
   { id:22, q:"Integral \\(\\displaystyle\\int_{0}^{2}\\int_{y-2}^{0}dx\\,dy\\) dengan urutan integrasi dibalik menjadi...", kunci:"intB2", fixedOptions:INTEGRAL_POOL_152_B },
   { id:23, q:"Integral \\(\\displaystyle\\int_{0}^{1}\\int_{y}^{\\sqrt{y}}dx\\,dy\\) dengan urutan integrasi dibalik menjadi...", kunci:"intB3", fixedOptions:INTEGRAL_POOL_152_B },
   { id:24, q:"Integral \\(\\displaystyle\\int_{0}^{1}\\int_{1-x}^{1-x^2}dy\\,dx\\) dengan urutan integrasi dibalik menjadi...", kunci:"intB4", fixedOptions:INTEGRAL_POOL_152_B }
+];
+
+
+// ═══════════════════════════════════════════════════════════════
+// MK PEMODELAN MATEMATIKA — Sub-bab PBM.1.1
+// Modeling Change with Difference Equations
+// 29 soal (tervalidasi Python)
+// ═══════════════════════════════════════════════════════════════
+const ANSWER_POOL_PBM11 = [
+  { key:"1",       latex:"1" },
+  { key:"8",       latex:"8" },
+  { key:"11bln",   latex:"11\\ \\text{bulan}" },
+  { key:"50",      latex:"50" },
+  { key:"56",      latex:"56" },
+  { key:"81",      latex:"81" },
+  { key:"90",      latex:"90" },
+  { key:"1015",    latex:"1015" },
+  { key:"5.0625",  latex:"5{,}0625" },
+  { key:"69.66",   latex:"\\approx 69{,}7\\ \\text{bulan}" },
+  { key:"57.68",   latex:"\\approx 57{,}7\\ \\text{bulan}" },
+  { key:"364.53",  latex:"\\$364{,}53" },
+  { key:"469.53",  latex:"\\$469{,}53" },
+  { key:"610.16",  latex:"\\$610{,}16" },
+  { key:"715.16",  latex:"\\$715{,}16" },
+  { key:"1199.10", latex:"\\$1199{,}10" },
+  { key:"1309.59", latex:"\\$1309{,}59" },
+  { key:"1311.66", latex:"\\$1311{,}66" },
+  { key:"1576.98", latex:"\\$1576{,}98" },
+  { key:"7775.50", latex:"\\$7775{,}50" },
+  { key:"10.49",   latex:"10{,}49" }
+];
+const FORMULA_POOL_PBM11_A = [
+  { key:"an3",   latex:"a_n = 3" },
+  { key:"an4n1", latex:"a_n = 4^{n-1}" },
+  { key:"an2n",  latex:"a_n = \\left(\\dfrac{1}{2}\\right)^{n}" },
+  { key:"an2n1", latex:"a_n = 2^n - 1" },
+  { key:"an3n1", latex:"a_n = 3^{n-1}" },
+  { key:"an2n2", latex:"a_n = 2^n + 1" }
+];
+const DELTA_POOL_PBM11 = [
+  { key:"d2",      latex:"\\Delta a_n = 2" },
+  { key:"danan1",  latex:"\\Delta a_n = a_n(a_n-1)" },
+  { key:"dan1",    latex:"\\Delta a_n = a_n + 1" },
+  { key:"d2an5",   latex:"\\Delta a_n = 2a_n + 5" },
+  { key:"d2an",    latex:"\\Delta a_n = 2a_n" },
+  { key:"dconst5", latex:"\\Delta a_n = 5" }
+];
+const FORMULA_POOL_PBM11_C = [
+  { key:"an45K", latex:"a_n = 45\\!000\\,(1{,}005)^n - 40\\!000" },
+  { key:"bn10K", latex:"b_n = \\dfrac{10\\!000}{3} - \\dfrac{8\\!500}{3}(1{,}015)^n" },
+  { key:"an_w1", latex:"a_n = 45\\!000\\,(1{,}005)^n + 40\\!000" },
+  { key:"bn_w1", latex:"b_n = \\dfrac{8\\!500}{3}(1{,}015)^n - \\dfrac{10\\!000}{3}" },
+  { key:"an_w2", latex:"a_n = 40\\!000 - 45\\!000\\,(1{,}005)^n" },
+  { key:"bn_w2", latex:"b_n = \\dfrac{10\\!000}{3}(1{,}015)^n + \\dfrac{8\\!500}{3}" }
+];
+SOAL_BANK['PBM.1.1'] = [
+  { id:"1a", q:"Diberikan barisan rekursif \\(a_{n+1}=3a_n\\), \\(a_0=1\\). Berapakah nilai \\(a_4\\)?", kunci:"81" },
+  { id:"1b", q:"Diberikan barisan rekursif \\(a_{n+1}=2a_n+6\\), \\(a_0=0\\). Berapakah nilai \\(a_4\\)?", kunci:"90" },
+  { id:"1c", q:"Diberikan barisan rekursif \\(a_{n+1}=2a_n(a_n+3)\\), \\(a_0=4\\). Berapakah nilai \\(a_1\\)?", kunci:"56" },
+  { id:"1d", q:"Diberikan barisan rekursif \\(a_{n+1}=a_n^2\\), \\(a_0=1\\). Berapakah nilai \\(a_4\\)?", kunci:"1" },
+  { id:"2a", q:"Manakah rumus suku ke-\\(n\\) (\\(n\\geq1\\)) untuk barisan \\(\\{3,3,3,3,\\ldots\\}\\)?", kunci:"an3", fixedOptions:FORMULA_POOL_PBM11_A },
+  { id:"2b", q:"Manakah rumus suku ke-\\(n\\) (\\(n\\geq1\\)) untuk barisan \\(\\{1,4,16,64,256,\\ldots\\}\\)?", kunci:"an4n1", fixedOptions:FORMULA_POOL_PBM11_A },
+  { id:"2c", q:"Manakah rumus suku ke-\\(n\\) (\\(n\\geq1\\)) untuk barisan \\(\\left\\{\\frac{1}{2},\\frac{1}{4},\\frac{1}{8},\\ldots\\right\\}\\)?", kunci:"an2n", fixedOptions:FORMULA_POOL_PBM11_A },
+  { id:"2d", q:"Manakah rumus suku ke-\\(n\\) (\\(n\\geq1\\)) untuk barisan \\(\\{1,3,7,15,31,\\ldots\\}\\)?", kunci:"an2n1", fixedOptions:FORMULA_POOL_PBM11_A },
+  { id:"3a", q:"Manakah persamaan beda \\(\\Delta a_n\\) untuk barisan \\(\\{2,4,6,8,10,\\ldots\\}\\)?", kunci:"d2", fixedOptions:DELTA_POOL_PBM11 },
+  { id:"3b", q:"Manakah persamaan beda \\(\\Delta a_n\\) untuk barisan \\(\\{2,4,16,256,\\ldots\\}\\)?", kunci:"danan1", fixedOptions:DELTA_POOL_PBM11 },
+  { id:"3c", q:"Manakah persamaan beda \\(\\Delta a_n\\) untuk barisan \\(\\{1,2,5,11,23,\\ldots\\}\\)?", kunci:"dan1", fixedOptions:DELTA_POOL_PBM11 },
+  { id:"3d", q:"Manakah persamaan beda \\(\\Delta a_n\\) untuk barisan \\(\\{1,8,29,92,\\ldots\\}\\)?", kunci:"d2an5", fixedOptions:DELTA_POOL_PBM11 },
+  { id:"4a", q:"Diberikan \\(\\Delta a_n=\\frac{1}{2}a_n\\), \\(a_0=1\\). Berapakah nilai \\(a_4\\)?", kunci:"5.0625" },
+  { id:"4b", q:"Diberikan \\(\\Delta b_n=0{,}015\\,b_n\\), \\(b_0=1000\\). Berapakah nilai \\(b_1\\)?", kunci:"1015" },
+  { id:"4c", q:"Diberikan \\(\\Delta p_n=0{,}001(500-p_n)\\), \\(p_0=10\\). Berapakah nilai \\(p_1\\)?", kunci:"10.49" },
+  { id:"4d", q:"Diberikan \\(\\Delta t_n=1{,}5(100-t_n)\\), \\(t_0=200\\). Berapakah nilai \\(t_1\\)?", kunci:"50" },
+  { id:"7f", q:"Tabungan awal \\$5000, bunga \\(0{,}5\\%\\)/bulan, setoran \\$200/bulan. Manakah rumus \\(a_n\\)?", kunci:"an45K", fixedOptions:FORMULA_POOL_PBM11_C },
+  { id:"7n", q:"Tabungan awal \\$5000, bunga \\(0{,}5\\%\\)/bulan, setoran \\$200/bulan. Berapakah saldo setelah 12 bulan?", kunci:"7775.50" },
+  { id:"8f", q:"Hutang kartu kredit \\$500, bunga \\(1{,}5\\%\\)/bulan, bayar \\$50/bulan. Manakah rumus \\(b_n\\)?", kunci:"bn10K", fixedOptions:FORMULA_POOL_PBM11_C },
+  { id:"8n", q:"Hutang kartu kredit \\$500, bunga \\(1{,}5\\%\\)/bulan, bayar \\$50/bulan. Setelah berapa bulan lunas?", kunci:"11bln" },
+  { id:"9",  q:"Hipotek \\$200.000, bunga \\(0{,}5\\%\\)/bulan, 30 tahun. Berapakah cicilan bulanan \\(p\\)?", kunci:"1199.10" },
+  { id:"10", q:"Anuitas \\$50.000, bunga \\(1\\%\\)/bulan, penarikan \\$1000/bulan. Setelah berapa bulan habis?", kunci:"69.66" },
+  { id:"11", q:"Anuitas (serupa Soal 10) dengan bunga \\(0{,}5\\%\\)/bulan. Setelah berapa bulan habis?", kunci:"57.68" },
+  { id:"12a", q:"Kartu kredit \\$12.000, bunga \\(19{,}9\\%\\)/tahun. Cicilan bulanan agar lunas dalam <strong>2 tahun</strong>?", kunci:"610.16" },
+  { id:"12b", q:"Kartu kredit \\$12.000, bunga \\(19{,}9\\%\\)/tahun. Cicilan bulanan agar lunas dalam <strong>4 tahun</strong>?", kunci:"364.53" },
+  { id:"13a", q:"Kartu kredit \\$12.000, bunga \\(19{,}9\\%\\)/tahun, tagihan baru \\$105/bulan. Cicilan agar lunas dalam <strong>2 tahun</strong>?", kunci:"715.16" },
+  { id:"13b", q:"Kartu kredit \\$12.000, bunga \\(19{,}9\\%\\)/tahun, tagihan baru \\$105/bulan. Cicilan agar lunas dalam <strong>4 tahun</strong>?", kunci:"469.53" },
+  { id:"15a", q:"Hipotek \\$250.000, bunga \\(0{,}4\\%\\)/bulan, 30 tahun. Berapakah cicilan bulanan \\(p\\)?", kunci:"1311.66" },
+  { id:"15b", q:"Refinansi sisa hipotek ke pinjaman 15 tahun bunga \\(3{,}8\\%\\)/tahun + biaya \\$2500. Berapakah cicilan bulanan?", kunci:"1576.98" }
+];
+
+
+// ═══════════════════════════════════════════════════════════════
+// MK PEMODELAN MATEMATIKA — Sub-bab PBM.1.2
+// Approximating Change with Difference Equations
+// 15 soal (tervalidasi Python)
+// ═══════════════════════════════════════════════════════════════
+const ANSWER_POOL_PBM12 = [
+  { key:"298.5",  latex:"298{,}5" },
+  { key:"23.3",   latex:"23{,}3" },
+  { key:"85.45",  latex:"85{,}45" },
+  { key:"9jam",   latex:"9\\text{ jam}" },
+  { key:"37870",  latex:"37\\!870\\text{ tahun}" },
+  { key:"11.37",  latex:"11{,}37\\,^\\circ\\text{C}" },
+  { key:"15.71",  latex:"15{,}71\\,^\\circ\\text{C}" },
+  { key:"1500mg", latex:"1500\\text{ mg}" },
+  { key:"5700",   latex:"5700\\text{ tahun}" }
+];
+const FORMULA_POOL_PBM12 = [
+  { key:"pop_as",      latex:"a_{n+1}=a_n+0{,}318\\,a_n-0{,}001\\,a_n^2" },
+  { key:"difusi",      latex:"a_{n+1}=a_n+k\\,a_n(N-a_n)" },
+  { key:"paus",        latex:"a_{n+1}=a_n+0{,}0005\\,(a_n-100)(1000-a_n)" },
+  { key:"obat_luruh",  latex:"a_{n+1}=0{,}8\\,a_n" },
+  { key:"dosis150",    latex:"a_n=750+50\\,(0{,}8)^n" },
+  { key:"jarak",       latex:"a_n=1{,}625\\,n^2-2{,}725\\,n+4{,}1" },
+  { key:"pendingin",   latex:"T_n=25-20\\,(0{,}88)^n" },
+  { key:"cipro_sin",   latex:"a_n=500\\left(\\tfrac{2}{3}\\right)^{n}" }
+];
+SOAL_BANK['PBM.1.2'] = [
+  // ── Soal 1: Populasi domba (Tasmania) ────────────────────────────────
+  { id:"1a", q:"Model logistik populasi domba: \\(a_{n+1}=a_n+1{,}5\\,a_n\\!\\left(1-\\dfrac{a_n}{1680}\\right)\\), \\(a_0=125\\). Hitunglah \\(a_1\\).", kunci:"298.5" },
+  // ── Soal 2: Populasi AS — pilih model ────────────────────────────────
+  { id:"2f", q:"Manakah model sistem dinamik yang paling cocok untuk data populasi Amerika Serikat (pertumbuhan logistik)?", kunci:"pop_as", fixedOptions:FORMULA_POOL_PBM12 },
+  // ── Soal 3: Difusi sosial ─────────────────────────────────────────────
+  { id:"3f", q:"Difusi sosial: informasi menyebar di antara populasi \\(N\\). Manakah model persamaan beda yang tepat untuk \\(\\Delta a_n\\)?", kunci:"difusi", fixedOptions:FORMULA_POOL_PBM12 },
+  // ── Soal 4: Penyebaran penyakit ──────────────────────────────────────
+  { id:"4n", q:"Penyebaran penyakit: \\(N=1000\\), \\(k=0{,}0002\\), laju kedatangan \\(1\\%\\). Jika \\(a_1\\approx11{,}19\\), hitunglah \\(a_2\\).", kunci:"23.3" },
+  // ── Soal 5: Populasi paus ─────────────────────────────────────────────
+  { id:"5a", q:"Model paus: \\(a_{n+1}=a_n+0{,}0005(a_n-100)(1000-a_n)\\), \\(a_0=90\\). Hitunglah \\(a_1\\).", kunci:"85.45" },
+  { id:"5f", q:"Model populasi paus dengan daya dukung \\(M\\) dan minimum kelangsungan hidup \\(m\\). Manakah persamaan beda yang tepat (\\(k=0{,}0005\\), \\(m=100\\), \\(M=1000\\))?", kunci:"paus", fixedOptions:FORMULA_POOL_PBM12 },
+  // ── Soal 6: Konsentrasi obat ──────────────────────────────────────────
+  { id:"6a", q:"Konsentrasi obat meluruh \\(20\\%\\)/jam, \\(a_0=640\\) mg/L, efektif jika \\(>100\\) mg/L. Setelah berapa jam obat tidak lagi efektif?", kunci:"9jam" },
+  { id:"6f", q:"Obat meluruh \\(20\\%\\) per jam. Manakah persamaan beda untuk konsentrasi \\(a_{n+1}\\)?", kunci:"obat_luruh", fixedOptions:FORMULA_POOL_PBM12 },
+  // ── Soal 7: Dosis 150 mg/jam ──────────────────────────────────────────
+  { id:"7f", q:"Dosis \\(150\\) mg/jam, peluruhan \\(80\\%\\), \\(a_0=800\\). Manakah rumus eksplisit \\(a_n\\) yang tepat?", kunci:"dosis150", fixedOptions:FORMULA_POOL_PBM12 },
+  // ── Soal 8: Penanggalan karbon-14 ────────────────────────────────────
+  { id:"8n", q:"Hanya \\(1\\%\\) karbon-14 yang tersisa pada tengkorak purba (\\(t_{1/2}=5700\\) tahun). Berapa perkiraan usia tengkorak tersebut?", kunci:"37870" },
+  // ── Soal 9: Jarak pengereman ──────────────────────────────────────────
+  { id:"9f", q:"Tentukan rumus \\(a_n\\) untuk jarak pengereman (ft) pada kecepatan \\(n\\times5\\) mph, berdasarkan pola data tabel.", kunci:"jarak", fixedOptions:FORMULA_POOL_PBM12 },
+  // ── Soal 10: Hukum Newton pendinginan ────────────────────────────────
+  { id:"10f", q:"Model pendinginan kaleng soda: suhu ruangan \\(25^\\circ\\)C, \\(T_0=5^\\circ\\)C. Manakah rumus \\(T_n\\) yang tepat?", kunci:"pendingin", fixedOptions:FORMULA_POOL_PBM12 },
+  { id:"10n", q:"Model pendinginan: \\(T_{n+1}=T_n+0{,}12(25-T_n)\\), \\(T_0=5^\\circ\\text{C}\\). Hitunglah \\(T_3\\).", kunci:"11.37" },
+  // ── Soal 11: Cipro (antibiotik) ───────────────────────────────────────
+  { id:"11a", q:"Cipro dosis tunggal \\(500\\) mg, ginjal menyaring \\(\\frac{1}{3}\\) per hari. Manakah rumus \\(a_n\\) (sisa Cipro setelah \\(n\\) hari)?", kunci:"cipro_sin", fixedOptions:FORMULA_POOL_PBM12 },
+  { id:"11b", q:"Cipro \\(500\\) mg/hari, ginjal menyaring \\(\\frac{1}{3}\\) per hari. Berapakah konsentrasi kesetimbangan (<em>steady-state</em>)?", kunci:"1500mg" }
+];
+
+
+// ═══════════════════════════════════════════════════════════════
+// MK PEMODELAN MATEMATIKA — Sub-bab PBM.1.3
+// Solutions to Dynamical Systems
+// 13 soal dari nomor 6-15 (nomor 1-5 belum tersedia)
+// ═══════════════════════════════════════════════════════════════
+const ANSWER_POOL_PBM13 = [
+  { key:"3333.33",  latex:"\\$3333{,}33" },
+  { key:"11bln13",  latex:"11\\ \\text{bulan}" },
+  { key:"599.55",   latex:"\\$599{,}55/\\text{bulan}" },
+  { key:"250187",   latex:"\\$250.187{,}42" },
+  { key:"100000eq", latex:"\\$100.000" },
+  { key:"70bln13",  latex:"70\\ \\text{bulan}" },
+  { key:"0eq",      latex:"0" },
+  { key:"3jam",     latex:"3\\ \\text{jam}" },
+  { key:"37870yr",  latex:"37.870\\ \\text{tahun}" },
+  { key:"8hari",    latex:"8\\ \\text{hari}" },
+  { key:"214226",   latex:"214.226" }
+];
+const FORMULA_POOL_PBM13 = [
+  { key:"fp_cc",   latex:"a_{n+1}=1{,}015\\,a_n-50" },
+  { key:"fp_mtg",  latex:"a_{n+1}=1{,}005\\,a_n-p" },
+  { key:"fp_rb1",  latex:"r_{n+1}=r_n(2-0{,}001\\,n)" },
+  { key:"fp_rb2",  latex:"r_{n+1}=r_n\\bigl[1+k(2000-n)\\bigr]" },
+  { key:"fp_eb",   latex:"i_{n+1}=i_n\\bigl[1+k(N-n)\\bigr]" },
+  { key:"fp_dig",  latex:"a_{n+1}=0{,}69\\,a_n" }
+];
+SOAL_BANK['PBM.1.3'] = [
+  // ── Soal 6: Kartu kredit $500, r=1.015, bayar $50/bln ────────────────
+  { id:"6a", q:"Kartu kredit \\(a_{n+1}=1{,}015\\,a_n-50\\), \\(a_0=500\\). Berapakah nilai kesetimbangan \\(a^*\\)?", kunci:"3333.33" },
+  { id:"6b", q:"Kartu kredit \\(a_0=500\\), bunga \\(1{,}5\\%\\)/bulan, bayar \\$50/bulan. Setelah berapa bulan lunas?", kunci:"11bln13" },
+  // ── Soal 7: Hipotek $100K, 0.5%/bln, 360 bln ─────────────────────────
+  { id:"7a", q:"Hipotek \\$100.000, bunga \\(0{,}5\\%\\)/bulan, 30 tahun (360 bulan). Berapakah cicilan bulanan \\(p\\)?", kunci:"599.55" },
+  // ── Soal 8: Jika p=$1500 cari L ──────────────────────────────────────
+  { id:"8a", q:"Hipotek 30 tahun, bunga \\(0{,}5\\%\\)/bulan. Jika cicilan \\$1500/bulan, berapa jumlah pinjaman maksimal?", kunci:"250187" },
+  // ── Soal 9: Anuitas $100K, 1%/bln, ambil $1000/bln ───────────────────
+  { id:"9a", q:"Anuitas dengan \\(a_{n+1}=1{,}01\\,a_n-1000\\). Berapakah nilai kesetimbangan \\(a^*\\)?", kunci:"100000eq" },
+  { id:"9b", q:"Anuitas \\(a_0=50.000\\), bunga \\(1\\%\\)/bulan, penarikan \\$1000/bulan. Setelah berapa bulan anuitas habis?", kunci:"70bln13" },
+  // ── Soal 10: Digoksin ─────────────────────────────────────────────────
+  { id:"10a", q:"Digoksin: \\(a_{n+1}=0{,}69\\,a_n\\), \\(b=0\\). Berapakah nilai kesetimbangan \\(a^*\\)?", kunci:"0eq" },
+  // ── Soal 11: Interval dosis ───────────────────────────────────────────
+  { id:"11a", q:"Obat meluruh \\(20\\%\\) per jam (\\(r=0{,}8\\)). Agar kadar tidak turun di bawah \\(50\\%\\) dosis awal, selang waktu antar dosis maksimal berapa jam?", kunci:"3jam" },
+  // ── Soal 12: Carbon dating ────────────────────────────────────────────
+  { id:"12a", q:"Hanya \\(1\\%\\) karbon-14 yang tersisa (\\(t_{1/2}=5700\\) tahun). Berapa usia benda tersebut?", kunci:"37870yr" },
+  // ── Soal 13: Kabar burung 1000 karyawan ──────────────────────────────
+  { id:"13a", q:"Kabar burung menyebar di perusahaan 1000 karyawan (\\(k=0{,}001\\), \\(r_0=4\\)). Pada hari ke berapa semua karyawan sudah mendengar?", kunci:"8hari" },
+  { id:"13f", q:"Manakah model persamaan beda yang tepat untuk penyebaran kabar di perusahaan 1000 karyawan (\\(k=0{,}001\\), \\(r_0=4\\))?", kunci:"fp_rb1", fixedOptions:FORMULA_POOL_PBM13 },
+  // ── Soal 14: Ebola ────────────────────────────────────────────────────
+  { id:"14a", q:"Ebola: \\(i_{n+1}=i_n[1+0{,}25(N-n)]\\), \\(i_0=1\\), \\(N=856.900\\). Hitunglah \\(i_1\\).", kunci:"214226" },
+  // ── Soal 15: Kabar burung 2000 karyawan ──────────────────────────────
+  { id:"15f", q:"Manakah model persamaan beda yang tepat untuk penyebaran kabar di perusahaan dengan \\(2000\\) karyawan (dengan konstanta \\(k\\) dan \\(r_0=4\\))?", kunci:"fp_rb2", fixedOptions:FORMULA_POOL_PBM13 }
+];
+
+
+// ═══════════════════════════════════════════════════════════════
+// MK PEMODELAN MATEMATIKA — Sub-bab PBM.1.4
+// Systems of Difference Equations
+// 10 soal (soal 1,2,5,8 dilewati — eksplorasi open-ended)
+// ═══════════════════════════════════════════════════════════════
+const ANSWER_POOL_PBM14 = [
+  { key:"F10",    latex:"F(10)\\approx 0{,}33" },
+  { key:"B10",    latex:"B(10)\\approx 18{,}43" },
+  { key:"b06",    latex:"b = 0{,}6" },
+  { key:"a141e3", latex:"a \\approx 1{,}41\\times10^{-3}" },
+  { key:"a261e3", latex:"a \\approx 2{,}61\\times10^{-3}" },
+  { key:"a150e3", latex:"a \\approx 1{,}50\\times10^{-3}" }
+];
+// Pool kesetimbangan sistem (pasangan koordinat)
+const EQ_POOL_PBM14 = [
+  { key:"eq00",     latex:"(0,\\;0)" },
+  { key:"eq150200", latex:"(M^*,\\,O^*) = (150,\\;200)" },
+  { key:"pq100500", latex:"(P^*,\\,Q^*) = (100,\\;500)" },
+  { key:"eq_kk",    latex:"\\left(\\dfrac{k_3}{k_4},\\;\\dfrac{k_1}{k_2}\\right)" },
+  { key:"eq200150", latex:"(M^*,\\,O^*) = (200,\\;150)" },
+  { key:"pq500100", latex:"(P^*,\\,Q^*) = (500,\\;100)" }
+];
+// Pool stabilitas
+const STAB_POOL_PBM14 = [
+  { key:"tidak_stab", latex:"\\textbf{Tidak stabil} — amplitudo membesar \\((|\\lambda|>1)\\)" },
+  { key:"stabil_as",  latex:"\\textbf{Stabil asimtotik} — menuju kesetimbangan \\((|\\lambda|<1)\\)" },
+  { key:"stabil_ly",  latex:"\\textbf{Stabil Lyapunov} — tidak mendekat, tidak menjauh \\((|\\lambda|=1)\\)" },
+  { key:"saddle",     latex:"\\textbf{Saddle point} — satu arah stabil, satu arah tidak stabil" },
+  { key:"stab_cen",   latex:"\\textbf{Pusat} — osilasi konstan tanpa redaman" }
+];
+SOAL_BANK['PBM.1.4'] = [
+  // ── Soal 3: Pertempuran Trafalgar ────────────────────────────────────
+  { id:"3a", q:"Pertempuran Trafalgar: \\(F(n+1)=F(n)-0{,}15B(n)\\), \\(B(n+1)=B(n)-0{,}05F(n)\\), \\(F(0)=33\\), \\(B(0)=27\\). Berapakah \\(F(10)\\)?", kunci:"F10" },
+  { id:"3b", q:"Pertempuran Trafalgar (kondisi sama). Berapakah \\(B(10)\\) (jumlah kapal Inggris yang tersisa)?", kunci:"B10" },
+  // ── Soal 4: Predator-Mangsa Burung Hantu dan Tikus ───────────────────
+  { id:"4a", q:"Model predator-mangsa: \\(M_{n+1}=1{,}2M_n-0{,}001O_nM_n\\), \\(O_{n+1}=0{,}7O_n+0{,}002O_nM_n\\). Manakah kesetimbangan <strong>trivial</strong> \\((M^*,O^*)\\)?", kunci:"eq00", fixedOptions:EQ_POOL_PBM14 },
+  { id:"4b", q:"Model predator-mangsa (sama). Manakah kesetimbangan <strong>non-trivial</strong> \\((M^*,O^*)\\)?", kunci:"eq150200", fixedOptions:EQ_POOL_PBM14 },
+  // ── Soal 6: Model Harga-Pasokan ──────────────────────────────────────
+  { id:"6a", q:"Model harga-pasokan: \\(P_{n+1}=P_n-0{,}1(Q_n-500)\\), \\(Q_{n+1}=Q_n+0{,}2(P_n-100)\\). Manakah kesetimbangan \\((P^*,Q^*)\\)?", kunci:"pq100500", fixedOptions:EQ_POOL_PBM14 },
+  { id:"6b", q:"Kesetimbangan model harga-pasokan memiliki nilai eigen \\(|\\lambda|=\\sqrt{1{,}02}\\approx1{,}01\\). Bagaimana sifat kestabilannya?", kunci:"tidak_stab", fixedOptions:STAB_POOL_PBM14 },
+  // ── Soal 7: Serangga Kapuk dan Kumbang Kepik ─────────────────────────
+  { id:"7a", q:"Model serangga kapuk-kumbang kepik: \\(C_{n+1}=(1+k_1-k_2B_n)C_n\\), \\(B_{n+1}=(1-k_3+k_4C_n)B_n\\). Manakah kesetimbangan <strong>non-trivial</strong>?", kunci:"eq_kk", fixedOptions:EQ_POOL_PBM14 },
+  // ── Soal 9: Model SIR — estimasi parameter ───────────────────────────
+  { id:"9a", q:"Model SIR: \\(I(0)=5\\), \\(R(0)=0\\), \\(R(1)=3\\). Berapakah nilai parameter \\(b\\) (laju pemulihan)?", kunci:"b06" },
+  { id:"9b", q:"Model SIR: \\(S(0)=995\\), \\(I(0)=5\\), \\(S(1)=988\\). Berapakah nilai parameter \\(a\\) (laju penularan)?", kunci:"a141e3" },
+  // ── Soal 10: Variasi Parameter SIR ───────────────────────────────────
+  { id:"10a", q:"Model SIR (variasi): \\(I(0)=5\\), \\(I(1)=15\\), \\(N=1000\\), \\(b=0{,}6\\). Berapakah nilai \\(a\\)?", kunci:"a261e3" }
 ];
 
 // ─── Mulberry32 PRNG ──────────────────────────────────────────────────────────
