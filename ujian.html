@@ -184,6 +184,15 @@ MathJax = {
       <div id="nim-counter" class="form-text text-muted">0 / 12 digit</div>
     </div>
     <div class="mb-3">
+      <label class="form-label fw-semibold">Mata Kuliah</label>
+      <select id="f-mk" class="form-select">
+        <option value="">-- Pilih Mata Kuliah --</option>
+        <option value="Pemodelan Matematika">Pemodelan Matematika</option>
+        <option value="Matematika">Matematika</option>
+        <option value="Kalkulus">Kalkulus</option>
+      </select>
+    </div>
+    <div class="mb-3">
       <label class="form-label fw-semibold">Offering</label>
       <input type="text" id="f-offering" class="form-control" placeholder="Contoh: A, B, C, ...">
     </div>
@@ -486,6 +495,7 @@ function updateStudentBar() {
 
   if (st) {
     html += sep +
+      '<span><span class="bar-lbl">MK:</span><span class="bar-val">' + (st.mk||'-') + '</span></span>' + sep +
       '<span>👤 <span class="bar-val">' + st.nama + '</span></span>' + sep +
       '<span><span class="bar-lbl">NIM:</span><span class="bar-val">' + st.nim + '</span></span>' + sep +
       '<span><span class="bar-lbl">Offering:</span><span class="bar-val">' + st.offering + '</span></span>';
@@ -518,13 +528,14 @@ async function checkPassword() {
 function startExam() {
   const nama     = document.getElementById('f-nama').value.trim();
   const nim      = document.getElementById('f-nim').value.trim();
+  const mk       = document.getElementById('f-mk').value.trim();
   const offering = document.getElementById('f-offering').value.trim();
   const email    = document.getElementById('f-email').value.trim();
   const wa       = document.getElementById('f-wa').value.trim();
   const errEl    = document.getElementById('id-error');
 
-  if (!nama || !nim || !offering || !email || !wa) {
-    errEl.textContent = 'Semua kolom wajib diisi.';
+  if (!nama || !nim || !mk || !offering || !email || !wa) {
+    errEl.textContent = 'Semua kolom wajib diisi (termasuk Mata Kuliah).';
     errEl.style.display = 'block';
     return;
   }
@@ -547,7 +558,7 @@ function startExam() {
   }
   errEl.style.display = 'none';
 
-  examState.student    = { nama, nim, offering, email, wa };
+  examState.student    = { nama, nim, mk, offering, email, wa };
   examState.answers    = {};
   examState.current    = 0;
   examState.startTime  = Date.now();
@@ -588,7 +599,7 @@ function startExam() {
   document.getElementById('exam-title').textContent =
     'Integral Ganda — Sub-bab ' + examState.config.sb;
   document.getElementById('exam-student-info').textContent =
-    nama + '  |  NIM: ' + nim + '  |  Offering: ' + offering;
+    mk + '  |  ' + nama + '  |  NIM: ' + nim + '  |  Offering: ' + offering;
 
   // Update identity bar dengan data mahasiswa
   updateStudentBar();
@@ -814,7 +825,7 @@ function showRecap(details, benar, total, skor) {
   // Header: nama, NIM, Offering
   const labelEl = document.getElementById('recap-student-label');
   if (labelEl) labelEl.textContent =
-    st.nama + '  |  NIM: ' + st.nim + '  |  Offering: ' + st.offering;
+    (st.mk ? st.mk + '  |  ' : '') + st.nama + '  |  NIM: ' + st.nim + '  |  Offering: ' + st.offering;
 
   const skorEl = document.getElementById('recap-skor');
   if (skorEl) skorEl.textContent = skor;
@@ -886,6 +897,7 @@ async function sendWebhook(details, benar, total, skor) {
     exam_id:      examState.config.id || '',
     subbab:       examState.config.sb,
     question_ids: examState.soal.map(function (s) { return s.id; }),
+    mk:           st.mk || '',
     nama:         st.nama,
     nim:          st.nim,
     offering:     st.offering,
