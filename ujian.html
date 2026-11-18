@@ -147,8 +147,15 @@ MathJax = {
   </div>
   <div class="card card-main p-4">
     <p class="text-muted mb-3">Masukkan password ujian yang diberikan dosen Anda:</p>
-    <input type="password" id="pwdInput" class="form-control mb-2" placeholder="Password ujian..."
-           onkeydown="if(event.key==='Enter')checkPassword()">
+    <div class="input-group mb-2">
+      <input type="password" id="pwdInput" class="form-control" placeholder="Password ujian..."
+             onkeydown="if(event.key==='Enter')checkPassword()">
+      <button class="btn btn-outline-secondary" type="button"
+              onclick="togglePwdVisibility('pwdInput','eye-pwd1')"
+              title="Lihat / sembunyikan password">
+        <span id="eye-pwd1">👁</span>
+      </button>
+    </div>
     <div id="pwd-error" class="text-danger small mb-2" style="display:none">
       ❌ Password salah. Coba lagi.
     </div>
@@ -166,11 +173,15 @@ MathJax = {
     <p class="text-muted small mb-3">Isi data diri Anda dengan lengkap dan benar sebelum memulai ujian.</p>
     <div class="mb-3">
       <label class="form-label fw-semibold">Nama Lengkap</label>
-      <input type="text" id="f-nama" class="form-control" placeholder="Nama lengkap sesuai KTM">
+      <input type="text" id="f-nama" class="form-control" placeholder="Nama lengkap sesuai KTM"
+             autocomplete="name">
+      <div class="form-text text-muted">Angka otomatis diblokir</div>
     </div>
     <div class="mb-3">
       <label class="form-label fw-semibold">NIM</label>
-      <input type="text" id="f-nim" class="form-control" placeholder="NIM (10 digit)">
+      <input type="text" id="f-nim" class="form-control" placeholder="NIM (12 digit)"
+             inputmode="numeric" maxlength="12" autocomplete="off">
+      <div id="nim-counter" class="form-text text-muted">0 / 12 digit</div>
     </div>
     <div class="mb-3">
       <label class="form-label fw-semibold">Offering</label>
@@ -182,7 +193,9 @@ MathJax = {
     </div>
     <div class="mb-3">
       <label class="form-label fw-semibold">No. WhatsApp</label>
-      <input type="text" id="f-wa" class="form-control" placeholder="08xxxxxxxxxx">
+      <input type="text" id="f-wa" class="form-control" placeholder="08xxxxxxxxxx"
+             inputmode="numeric" maxlength="15">
+      <div class="form-text text-muted">Diawali 08, hanya angka</div>
     </div>
     <div id="id-error" class="text-danger small mb-2" style="display:none"></div>
     <button class="btn btn-primary w-100 mt-2" onclick="startExam()">Mulai Ujian →</button>
@@ -433,6 +446,20 @@ function getLatexForKey(soalObj, key) {
   return entry ? entry.latex : key;
 }
 
+// ─── Toggle password visibility ───────────────────────────────────────────────
+function togglePwdVisibility(inputId, iconId) {
+  const inp  = document.getElementById(inputId);
+  const icon = document.getElementById(iconId);
+  if (!inp) return;
+  if (inp.type === 'password') {
+    inp.type = 'text';
+    if (icon) icon.textContent = '🙈';
+  } else {
+    inp.type = 'password';
+    if (icon) icon.textContent = '👁';
+  }
+}
+
 // ─── STUDENT IDENTITY BAR ─────────────────────────────────────────────────────
 // Dipanggil 2×: (1) setelah config dimuat → tampil sub-bab+link ID
 //               (2) setelah mahasiswa isi data diri → tambah nama+NIM+offering
@@ -499,6 +526,18 @@ function startExam() {
   if (!nama || !nim || !offering || !email || !wa) {
     errEl.textContent = 'Semua kolom wajib diisi.';
     errEl.style.display = 'block';
+    return;
+  }
+  if (!/^\d{12}$/.test(nim)) {
+    errEl.textContent = 'NIM harus tepat 12 digit angka (tidak boleh huruf).';
+    errEl.style.display = 'block';
+    document.getElementById('f-nim').focus();
+    return;
+  }
+  if (!/^\d+$/.test(wa) || !wa.startsWith('08') || wa.length < 10) {
+    errEl.textContent = 'No. WhatsApp harus diawali 08, hanya angka, minimal 10 digit.';
+    errEl.style.display = 'block';
+    document.getElementById('f-wa').focus();
     return;
   }
   if (!email.toLowerCase().endsWith('@students.um.ac.id')) {
@@ -666,24 +705,61 @@ function setupAntiCheat() {
     }
   }, true);
 
-  // [FIX BUG 2] Semua handler cek examState.submitted terlebih dahulu.
-  //             Jika ujian sudah dikumpulkan, pindah tab TIDAK lagi dianggap pelanggaran.
+  // ── Anti-cheat dengan threshold durasi ─────────────────────────────────────
+  // Hanya catat pelanggaran jika mahasiswa KELUAR ≥ BATAS_DETIK.
+  // Mencegah false positive di HP: screen lock otomatis, sentuhan tidak sengaja,
+  // notifikasi sekilas. Keluar < 5 dtk → diabaikan. ≥ 5 dtk → dicatat + peringatan.
+  const BATAS_DETIK = 5;
+  let _hiddenSince = null;
+  let _blurSince   = null;
+
   document.addEventListener('visibilitychange', function () {
-    if (examState.submitted) return;   // ← FIX: abaikan setelah selesai
+    if (examState.submitted) return;
     if (document.hidden) {
-      examState.violations.push({ type: 'tab_switch', time: new Date().toISOString() });
-      showViolationWarning('Anda berpindah tab! Tindakan ini telah dicatat.');
+      _hiddenSince = Date.now();         // catat waktu mulai keluar
+    } else {
+      if (_hiddenSince !== null) {
+        const durasi = Math.round((Date.now() - _hiddenSince) / 1000);
+        _hiddenSince = null;
+        if (durasi >= BATAS_DETIK) {
+          examState.violations.push({
+            type: 'tab_switch',
+            time: new Date().toISOString(),
+            durasi_detik: durasi
+          });
+          showViolationWarning(
+            'Anda meninggalkan halaman ujian selama ' + durasi +
+            ' detik. Tindakan ini telah dicatat.'
+          );
+        }
+        // Di bawah threshold → screen lock sebentar / notif → abaikan
+      }
     }
   });
 
   window.addEventListener('blur', function () {
-    if (examState.submitted) return;   // ← FIX
-    examState.violations.push({ type: 'window_blur', time: new Date().toISOString() });
+    if (examState.submitted) return;
+    _blurSince = Date.now();
+  });
+
+  window.addEventListener('focus', function () {
+    if (examState.submitted) return;
+    if (_blurSince !== null) {
+      const durasi = Math.round((Date.now() - _blurSince) / 1000);
+      _blurSince = null;
+      if (durasi >= BATAS_DETIK) {
+        examState.violations.push({
+          type: 'window_blur',
+          time: new Date().toISOString(),
+          durasi_detik: durasi
+        });
+      }
+    }
   });
 
   window.addEventListener('beforeunload', function () {
-    if (examState.submitted) return;   // ← FIX: boleh tutup setelah selesai
-    examState.violations.push({ type: 'page_leave', time: new Date().toISOString() });
+    if (examState.submitted) return;
+    examState.violations.push({ type: 'page_leave', time: new Date().toISOString(), durasi_detik: 0 });
   });
 }
 
@@ -746,14 +822,23 @@ function showRecap(details, benar, total, skor) {
   const benarEl = document.getElementById('recap-benar-label');
   if (benarEl) benarEl.textContent = benar + ' dari ' + total + ' soal benar';
 
-  const violCount = examState.violations.filter(function (v) {
-    return v.type === 'tab_switch';
-  }).length;
-  const violEl = document.getElementById('recap-violations');
+  const tabViols = examState.violations.filter(function (v) { return v.type === 'tab_switch'; });
+  const violEl   = document.getElementById('recap-violations');
   if (violEl) {
-    violEl.innerHTML = violCount > 0
-      ? '<div class="alert alert-warning py-2 small mb-2">⚠️ Jumlah perpindahan tab terdeteksi: <strong>' + violCount + '</strong></div>'
-      : '<div class="alert alert-success py-2 small mb-2">✅ Tidak ada perpindahan tab terdeteksi.</div>';
+    if (tabViols.length === 0) {
+      violEl.innerHTML = '<div class="alert alert-success py-2 small mb-2">✅ Tidak ada perpindahan tab terdeteksi.</div>';
+    } else {
+      const totalDtk = tabViols.reduce(function (s, v) { return s + (v.durasi_detik || 0); }, 0);
+      const detail   = tabViols.map(function (v, i) {
+        return '<span class="badge bg-warning text-dark me-1">#' + (i+1) + ': ' + (v.durasi_detik||'?') + ' dtk</span>';
+      }).join('');
+      violEl.innerHTML =
+        '<div class="alert alert-warning py-2 small mb-1">' +
+        '⚠️ Meninggalkan halaman: <strong>' + tabViols.length + 'x</strong>' +
+        ' — Total durasi: <strong>' + totalDtk + ' detik</strong>' +
+        '</div>' +
+        '<div class="mb-3">' + detail + '</div>';
+    }
   }
 
   const tbody = document.getElementById('recap-tbody');
@@ -842,6 +927,44 @@ document.addEventListener('DOMContentLoaded', function () {
   examState.config = cfg;
   updateStudentBar();   // ← tampilkan bar sub-bab + link ID segera
   showScreen('screen-password');
+
+  // ── Validator real-time input form identitas ──────────────────────────────
+  // NIM: hanya angka, tepat 12 digit, counter langsung terlihat
+  const nimEl      = document.getElementById('f-nim');
+  const nimCounter = document.getElementById('nim-counter');
+  if (nimEl) {
+    nimEl.addEventListener('input', function () {
+      this.value = this.value.replace(/\D/g, '').slice(0, 12);
+      const n = this.value.length;
+      if (nimCounter) {
+        nimCounter.textContent = n + ' / 12 digit' + (n === 12 ? ' ✓' : '');
+        nimCounter.className   = n === 12 ? 'form-text text-success fw-bold'
+                               : n  >  0  ? 'form-text text-warning'
+                               :            'form-text text-muted';
+      }
+    });
+  }
+
+  // Nama: blokir angka (huruf dan spasi saja)
+  const namaEl = document.getElementById('f-nama');
+  if (namaEl) {
+    namaEl.addEventListener('input', function () {
+      const pos = this.selectionStart;
+      const cleaned = this.value.replace(/[0-9]/g, '');
+      if (cleaned !== this.value) {
+        this.value = cleaned;
+        try { this.setSelectionRange(pos - 1, pos - 1); } catch (e) {}
+      }
+    });
+  }
+
+  // No. WA: hanya angka (huruf otomatis diblokir)
+  const waEl = document.getElementById('f-wa');
+  if (waEl) {
+    waEl.addEventListener('input', function () {
+      this.value = this.value.replace(/\D/g, '').slice(0, 15);
+    });
+  }
 });
 </script>
 </body>
