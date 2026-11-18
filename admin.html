@@ -71,64 +71,84 @@
   </div>
 
   <!-- ======================================================= -->
-  <!-- KONFIGURASI SUB-BAB                                     -->
+  <!-- PANEL KONFIGURASI UJIAN TERPADU (MK → Sub-bab)         -->
   <!-- ======================================================= -->
-  <h6 class="text-uppercase text-muted fw-bold small letter-spacing mb-3">Konfigurasi Sub-bab</h6>
-  <div id="subbabContainer"></div>
+  <h6 class="text-uppercase text-muted fw-bold small mb-3">Konfigurasi Ujian</h6>
 
-  <!-- ======================================================= -->
-  <!-- LINK MULTI SUB-BAB                                      -->
-  <!-- ======================================================= -->
-  <div id="multibankCard" class="mt-4">
-    <div class="card shadow-sm border-primary">
-      <div class="card-header bg-primary text-white py-2 fw-semibold d-flex justify-content-between align-items-center"
-           style="cursor:pointer" onclick="toggleMultibank()">
-        <span>🔀 Generate Link Multi Sub-bab</span>
-        <span id="mbToggleIcon">▼</span>
-      </div>
-      <div id="multibankBody" class="card-body" style="display:none">
-        <p class="text-muted small mb-3">
-          Gabungkan beberapa sub-bab dalam satu link. Soal dikelompokkan per sub-bab (tidak tercampur),
-          label sub-bab tampil di tiap soal.
-        </p>
-        <!-- Daftar sub-bab dengan checkbox + jumlah soal -->
-        <div id="mb-sbs-list" class="mb-3"></div>
-        <!-- Setting global link -->
-        <div class="row g-3 border-top pt-3">
-          <div class="col-sm-3">
-            <label class="form-label small fw-semibold">Durasi (menit)</label>
-            <input type="number" id="mb-dur" class="form-control" value="60" min="0">
+  <!-- Kartu: Pilih MK + Sub-bab -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-header bg-white py-2 px-3 d-flex align-items-center gap-3 flex-wrap">
+      <span class="fw-semibold text-primary">Mata Kuliah:</span>
+      <select id="mk-selector" class="form-select form-select-sm w-auto" onchange="renderSubbabTable()">
+        <!-- diisi JS -->
+      </select>
+      <small class="text-muted ms-auto" id="gen-hint">Centang sub-bab yang ingin diujikan</small>
+    </div>
+    <div class="card-body p-0">
+      <table class="table table-sm table-hover mb-0">
+        <thead class="table-light">
+          <tr>
+            <th style="width:44px" class="text-center">Ikut</th>
+            <th>Sub-bab</th>
+            <th style="width:160px">Jumlah Soal</th>
+            <th style="width:90px" class="text-muted">Tersedia</th>
+          </tr>
+        </thead>
+        <tbody id="subbab-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Kartu: Setting global -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-sm-4">
+          <label class="form-label small fw-semibold">Jenis Ujian</label>
+          <div class="input-group input-group-sm">
+            <select id="g-jenis" class="form-select">
+              <option value="Pretest" selected>Pretest</option>
+              <option value="Posttest">Posttest</option>
+              <option value="Kuis">Kuis</option>
+              <option value="UTS">UTS</option>
+              <option value="UAS">UAS</option>
+            </select>
+            <span class="input-group-text">ke-</span>
+            <input type="number" id="g-jenisno" class="form-control" style="max-width:62px" value="1" min="1">
           </div>
-          <div class="col-sm-3">
-            <label class="form-label small fw-semibold">Password Mahasiswa</label>
-            <input type="text" id="mb-pwd" class="form-control" placeholder="cth: kuis15" autocomplete="off">
-          </div>
-          <div class="col-sm-3">
-            <label class="form-label small fw-semibold">Jenis Ujian</label>
-            <div class="input-group">
-              <select id="mb-jenis" class="form-select">
-                <option value="Pretest">Pretest</option>
-                <option value="Posttest">Posttest</option>
-                <option value="Kuis" selected>Kuis</option>
-                <option value="UTS">UTS</option>
-                <option value="UAS">UAS</option>
-              </select>
-              <span class="input-group-text">ke-</span>
-              <input type="number" id="mb-jenisno" class="form-control" style="max-width:70px" value="1" min="1">
-            </div>
-          </div>
-          <div class="col-sm-3">
-            <label class="form-label small fw-semibold">Waktu Berakhir (opsional)</label>
-            <input type="datetime-local" id="mb-exp" class="form-control">
-          </div>
+          <div class="form-text">Contoh: Pretest ke-1 → label <strong>Pretest-1</strong></div>
         </div>
-        <div class="mt-3">
-          <button class="btn btn-primary fw-semibold" onclick="generateMultiLink()">
-            🔀 Generate Link Multi Sub-bab
-          </button>
+        <div class="col-sm-4">
+          <label class="form-label small fw-semibold">Durasi (menit, 0 = tanpa batas)</label>
+          <input type="number" id="g-dur" class="form-control form-control-sm" value="30" min="0">
+        </div>
+        <div class="col-sm-4">
+          <label class="form-label small fw-semibold">Password Mahasiswa</label>
+          <input type="text" id="g-pwd" class="form-control form-control-sm"
+                 placeholder="cth: pretest15a" autocomplete="off">
+          <div class="form-text">Dibagikan ke mahasiswa sebelum ujian</div>
+        </div>
+        <div class="col-sm-6">
+          <label class="form-label small fw-semibold">⏰ Waktu Mulai Link <span class="text-muted fw-normal">(opsional)</span></label>
+          <input type="datetime-local" id="g-start" class="form-control form-control-sm">
+          <div class="form-text">Kosongkan = langsung aktif saat dibagikan</div>
+        </div>
+        <div class="col-sm-6">
+          <label class="form-label small fw-semibold">⛔ Waktu Berakhir Link <span class="text-muted fw-normal">(opsional)</span></label>
+          <input type="datetime-local" id="g-exp" class="form-control form-control-sm">
+          <div class="form-text">Kosongkan = tidak ada batas waktu</div>
         </div>
       </div>
     </div>
+  </div>
+
+  <div class="d-flex flex-wrap gap-2 mb-4">
+    <button class="btn btn-primary fw-semibold" id="btn-generate" onclick="generateLinkUjian()">
+      🔗 Generate Link Ujian
+    </button>
+    <button class="btn btn-outline-secondary btn-sm" onclick="saveGlobalConfig()">
+      💾 Simpan Konfigurasi
+    </button>
   </div>
 
   <!-- ======================================================= -->
@@ -265,17 +285,31 @@
 const DEFAULT_ADMIN_PWD = 'admin2024';
 const LS_PREFIX = 'kalk15_testing_';
 
-// Data sub-bab yang tersedia
-const SUBBAB_INFO = {
-  '15.1': {
-    nama: 'Sub-bab 15.1 — Integral Ganda pada Persegi Panjang',
-    totalSoal: 36
+// ── Hierarki MK → Sub-bab ─────────────────────────────────────────────────
+// Tambah MK baru: tambah blok baru di MK_INFO
+// Tambah sub-bab: tambah entry di subbab MK yang sesuai
+// totalSoal: 0 → sub-bab dikunci (belum ada soal)
+const MK_INFO = {
+  'Kalkulus': {
+    nama: 'Kalkulus',
+    subbab: {
+      '15.1': { nama: 'Sub-bab 15.1 — Integral Ganda pada Persegi Panjang', totalSoal: 36 },
+      '15.2': { nama: 'Sub-bab 15.2 — Integral Ganda pada Daerah Umum',    totalSoal: 24 }
+      // Tambah 15.3, 15.4 dst di sini
+    }
   },
-  '15.2': {
-    nama: 'Sub-bab 15.2 — Integral Ganda pada Daerah Umum',
-    totalSoal: 24
+  'Pemodelan Matematika': {
+    nama: 'Pemodelan Matematika',
+    subbab: {
+      'PBM.1': { nama: 'Sub-bab PBM.1 — (Belum ada soal)', totalSoal: 0 }
+    }
+  },
+  'Matematika': {
+    nama: 'Matematika',
+    subbab: {
+      'MTK.1': { nama: 'Sub-bab MTK.1 — (Belum ada soal)', totalSoal: 0 }
+    }
   }
-  // Tambahkan 15.3 dst di sini setelah soal disiapkan
 };
 
 /* ===== TOGGLE PASSWORD ===== */
@@ -306,7 +340,7 @@ function doLogin() {
   if (val === getAdminPwd()) {
     document.getElementById('loginWrapper').style.display = 'none';
     document.getElementById('dashboard').style.display = 'block';
-    renderSubbab();
+    renderMKPanel();
     // Load webhook URL after dashboard render
     const wh = localStorage.getItem(LS_PREFIX + 'webhook_url') || '';
     document.getElementById('webhookUrl').value = wh;
@@ -332,194 +366,93 @@ function changeAdminPwd() {
   alert('✅ Password berhasil diubah!');
 }
 
-/* ===== RENDER SUB-BAB ===== */
-function getConfig(sb) {
-  const s = localStorage.getItem(LS_PREFIX + 'cfg_' + sb);
-  return s ? JSON.parse(s) : { n: 10, durasi: 30, pwd: '', jenis: 'Pretest', jenisNo: 1, startDt: '', expDt: '' };
-}
+/* ===== PANEL TERPADU MK → SUB-BAB ===== */
 
-function renderSubbab() {
-  let html = '';
-  for (const [id, info] of Object.entries(SUBBAB_INFO)) {
-    const cfg = getConfig(id);
-    html += `
-    <div class="card mb-3 subbab-card shadow-sm border-0">
-      <div class="card-header bg-white py-2 px-3 d-flex justify-content-between align-items-center">
-        <span class="fw-semibold text-primary">${info.nama}</span>
-        <span class="badge bg-secondary">${info.totalSoal} soal tersedia</span>
-      </div>
-      <div class="card-body">
-        <div class="row g-3">
-          <div class="col-sm-4">
-            <label class="form-label small fw-semibold">Jumlah soal yang keluar</label>
-            <input type="number" id="n_${id}" class="form-control" value="${cfg.n}"
-                   min="1" max="${info.totalSoal}">
-            <div class="form-text">Maks: ${info.totalSoal} soal</div>
-          </div>
-          <div class="col-sm-4">
-            <label class="form-label small fw-semibold">Durasi (menit, 0 = tanpa batas)</label>
-            <input type="number" id="dur_${id}" class="form-control" value="${cfg.durasi}" min="0">
-          </div>
-          <div class="col-sm-4">
-            <label class="form-label small fw-semibold">Password mahasiswa</label>
-            <input type="text" id="pwd_${id}" class="form-control" value="${cfg.pwd}"
-                   placeholder="cth: pretest15a" autocomplete="off">
-            <div class="form-text">Dibagikan ke mhs sebelum ujian</div>
-          </div>
-          <div class="col-sm-6">
-            <label class="form-label small fw-semibold">Jenis Ujian</label>
-            <div class="input-group">
-              <select id="jenis_${id}" class="form-select">
-                <option value="Pretest"  ${(cfg.jenis||'Pretest')==='Pretest'  ? 'selected':''}>Pretest</option>
-                <option value="Posttest" ${(cfg.jenis||'')==='Posttest' ? 'selected':''}>Posttest</option>
-                <option value="Kuis"     ${(cfg.jenis||'')==='Kuis'     ? 'selected':''}>Kuis</option>
-                <option value="UTS"      ${(cfg.jenis||'')==='UTS'      ? 'selected':''}>UTS</option>
-                <option value="UAS"      ${(cfg.jenis||'')==='UAS'      ? 'selected':''}>UAS</option>
-              </select>
-              <span class="input-group-text">ke-</span>
-              <input type="number" id="jenisno_${id}" class="form-control" style="max-width:70px"
-                     value="${cfg.jenisNo||1}" min="1" max="99" title="Nomor urut (opsional)">
-            </div>
-            <div class="form-text">Contoh: Pretest ke-1 → label <strong>Pretest-1</strong></div>
-          </div>
-          <div class="col-sm-6">
-            <label class="form-label small fw-semibold">⏰ Waktu Mulai Link <span class="text-muted fw-normal">(opsional)</span></label>
-            <input type="datetime-local" id="start_${id}" class="form-control" value="${cfg.startDt||''}">
-            <div class="form-text">Kosongkan = langsung aktif saat link dibagikan</div>
-          </div>
-          <div class="col-sm-6">
-            <label class="form-label small fw-semibold">⛔ Waktu Berakhir Link <span class="text-muted fw-normal">(opsional)</span></label>
-            <input type="datetime-local" id="exp_${id}" class="form-control" value="${cfg.expDt||''}">
-            <div class="form-text">Kosongkan = tidak ada batas waktu</div>
-          </div>
-        </div>
-        <div class="mt-3 d-flex flex-wrap gap-2">
-          <button class="btn btn-primary fw-semibold" onclick="generateLink('${id}')">
-            🔗 Generate Link Ujian
-          </button>
-          <button class="btn btn-outline-secondary btn-sm" onclick="saveOnly('${id}')">
-            💾 Simpan Konfigurasi
-          </button>
-        </div>
-      </div>
-    </div>`;
-  }
-  document.getElementById('subbabContainer').innerHTML = html;
+function getGlobalConfig() {
+  const s = localStorage.getItem(LS_PREFIX + 'global_cfg');
+  return s ? JSON.parse(s) : { jenis:'Pretest', jenisNo:1, dur:30, pwd:'', startDt:'', expDt:'' };
 }
-
-function saveOnly(sb) {
-  if (!validateForm(sb)) return;
-  const n       = +document.getElementById('n_'       + sb).value;
-  const durasi  = +document.getElementById('dur_'     + sb).value;
-  const pwd     = document.getElementById('pwd_'     + sb).value.trim();
-  const jenis   = document.getElementById('jenis_'   + sb).value;
-  const jenisNo = +document.getElementById('jenisno_'+ sb).value || 1;
-  const startDt = document.getElementById('start_' + sb).value;
-  const expDt   = document.getElementById('exp_'   + sb).value;
-  localStorage.setItem(LS_PREFIX + 'cfg_' + sb, JSON.stringify({ n, durasi, pwd, jenis, jenisNo, startDt, expDt }));
+function saveGlobalConfig() {
+  const cfg = readGlobalForm();
+  localStorage.setItem(LS_PREFIX + 'global_cfg', JSON.stringify(cfg));
   alert('✅ Konfigurasi disimpan!');
 }
-
-function validateForm(sb) {
-  const info = SUBBAB_INFO[sb];
-  const n = +document.getElementById('n_' + sb).value;
-  const dur = +document.getElementById('dur_' + sb).value;
-  if (!n || n < 1 || n > info.totalSoal) {
-    alert('Jumlah soal harus antara 1 dan ' + info.totalSoal + '.'); return false;
-  }
-  if (isNaN(dur) || dur < 0) {
-    alert('Durasi tidak valid.'); return false;
-  }
-  return true;
-}
-
-/* ===== MULTI-BANK ===== */
-let mbOpen = false;
-function toggleMultibank() {
-  mbOpen = !mbOpen;
-  document.getElementById('multibankBody').style.display = mbOpen ? 'block' : 'none';
-  document.getElementById('mbToggleIcon').textContent = mbOpen ? '▲' : '▼';
-  if (mbOpen) renderMultibankList();
-}
-
-function renderMultibankList() {
-  const container = document.getElementById('mb-sbs-list');
-  if (!container) return;
-  let html = '<table class="table table-sm table-bordered mb-0"><thead><tr>' +
-    '<th style="width:40px">Ikut</th><th>Sub-bab</th>' +
-    '<th style="width:120px">Jumlah Soal</th><th>Tersedia</th></tr></thead><tbody>';
-  for (const [id, info] of Object.entries(SUBBAB_INFO)) {
-    html += `<tr>
-      <td class="text-center"><input type="checkbox" id="mb_chk_${id}" class="form-check-input" checked></td>
-      <td><label for="mb_chk_${id}" class="mb-0">${info.nama}</label></td>
-      <td><input type="number" id="mb_n_${id}" class="form-control form-control-sm"
-                 value="5" min="1" max="${info.totalSoal}"></td>
-      <td class="text-muted small">${info.totalSoal} soal</td>
-    </tr>`;
-  }
-  html += '</tbody></table>';
-  container.innerHTML = html;
-}
-
-async function generateMultiLink() {
-  // Kumpulkan sub-bab yang dicentang
-  const sbs = [];
-  for (const [id, info] of Object.entries(SUBBAB_INFO)) {
-    const chk = document.getElementById('mb_chk_' + id);
-    if (chk && chk.checked) {
-      const n = +document.getElementById('mb_n_' + id).value;
-      if (!n || n < 1 || n > info.totalSoal) {
-        alert('Jumlah soal untuk ' + info.nama + ' harus antara 1 dan ' + info.totalSoal + '.');
-        return;
-      }
-      sbs.push({ sb: id, n });
-    }
-  }
-  if (sbs.length === 0) { alert('Pilih minimal satu sub-bab.'); return; }
-  if (sbs.length === 1) {
-    if (!confirm('Hanya 1 sub-bab dipilih. Gunakan Generate Link biasa di atas untuk hasil lebih optimal.\nLanjutkan?')) return;
-  }
-
-  const durasi  = +document.getElementById('mb-dur').value     || 0;
-  const pwd     = document.getElementById('mb-pwd').value.trim();
-  const jenis   = document.getElementById('mb-jenis').value;
-  const jenisNo = +document.getElementById('mb-jenisno').value  || 1;
-  const expDt   = document.getElementById('mb-exp').value;
-  const jenisLabel = jenis + '-' + jenisNo;
-  const expTs   = expDt ? new Date(expDt).getTime() : 0;
-
-  if (!pwd) {
-    if (!confirm('⚠️ Password mahasiswa kosong. Lanjutkan?')) return;
-  }
-
-  const webhookUrl = (localStorage.getItem(LS_PREFIX + 'webhook_url') || '').trim();
-  const examId = (window.crypto && crypto.randomUUID)
-    ? crypto.randomUUID()
-    : (Date.now().toString(36) + Math.random().toString(36).slice(2, 10));
-  const hashedPwd = pwd ? await sha256(pwd) : '';
-
-  const cfg = {
-    sbs,                              // ← format multi-bank
-    d: durasi, p: hashedPwd,
-    ts: Date.now(), id: examId,
-    w: webhookUrl, j: jenisLabel,
-    ...(expTs ? {exp: expTs} : {})
+function readGlobalForm() {
+  return {
+    jenis:   document.getElementById('g-jenis').value,
+    jenisNo: +document.getElementById('g-jenisno').value || 1,
+    dur:     +document.getElementById('g-dur').value     || 0,
+    pwd:     document.getElementById('g-pwd').value.trim(),
+    startDt: document.getElementById('g-start').value,
+    expDt:   document.getElementById('g-exp').value
   };
-  const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(cfg))));
-  const ujianBase = window.location.href.replace(/\/[^\/]*(\?.*)?$/, '/ujian.html');
-  const link = ujianBase + '#config=' + encodeURIComponent(encoded);
+}
 
-  const sbNames = sbs.map(s => s.sb + '(' + s.n + ')').join(' + ');
-  document.getElementById('generatedLinkText').textContent = link;
-  document.getElementById('linkMeta').innerHTML =
-    `Jenis: <strong>${jenisLabel}</strong> &nbsp;|&nbsp; ` +
-    `Sub-bab: <strong>${sbNames}</strong> &nbsp;|&nbsp; ` +
-    `Total soal: <strong>${sbs.reduce((a,s) => a+s.n, 0)}</strong> &nbsp;|&nbsp; ` +
-    `Durasi: <strong>${durasi > 0 ? durasi + ' menit' : 'tanpa batas'}</strong> &nbsp;|&nbsp; ` +
-    `Dibuat: <strong>${new Date().toLocaleString('id-ID')}</strong>` +
-    (expTs ? ` &nbsp;|&nbsp; Berakhir: <strong>${new Date(expTs).toLocaleString('id-ID')}</strong>` : '');
-  document.getElementById('linkCard').style.display = 'block';
-  document.getElementById('linkCard').scrollIntoView({ behavior: 'smooth' });
+function renderMKPanel() {
+  // Populate MK selector
+  const sel = document.getElementById('mk-selector');
+  if (!sel) return;
+  sel.innerHTML = Object.entries(MK_INFO)
+    .map(([k,v]) => `<option value="${k}">${v.nama}</option>`).join('');
+  // Load saved global config
+  const cfg = getGlobalConfig();
+  document.getElementById('g-jenis').value   = cfg.jenis   || 'Pretest';
+  document.getElementById('g-jenisno').value = cfg.jenisNo || 1;
+  document.getElementById('g-dur').value     = cfg.dur     || 30;
+  document.getElementById('g-pwd').value     = cfg.pwd     || '';
+  document.getElementById('g-start').value   = cfg.startDt || '';
+  document.getElementById('g-exp').value     = cfg.expDt   || '';
+  renderSubbabTable();
+}
+
+function renderSubbabTable() {
+  const mk     = document.getElementById('mk-selector').value;
+  const mkInfo = MK_INFO[mk];
+  if (!mkInfo) return;
+  const tbody = document.getElementById('subbab-tbody');
+  tbody.innerHTML = Object.entries(mkInfo.subbab).map(([sbId, sbInfo]) => {
+    const hasSeq = sbInfo.totalSoal > 0;
+    const defN   = Math.min(10, sbInfo.totalSoal);
+    return `<tr class="${!hasSeq ? 'text-muted' : ''}">
+      <td class="text-center align-middle">
+        <input type="checkbox" class="form-check-input sb-check" value="${sbId}"
+               ${!hasSeq ? 'disabled title="Belum ada soal"' : ''}
+               onchange="updateGenBtn()">
+      </td>
+      <td class="align-middle">
+        ${sbInfo.nama}
+        ${!hasSeq ? '<span class="badge bg-secondary ms-1">Belum ada soal</span>' : ''}
+      </td>
+      <td>
+        <input type="number" class="form-control form-control-sm sb-n" data-id="${sbId}"
+               value="${defN}" min="1" max="${sbInfo.totalSoal}"
+               ${!hasSeq ? 'disabled' : ''}>
+        <div class="form-text small">maks ${sbInfo.totalSoal}</div>
+      </td>
+      <td class="align-middle small text-muted">${sbInfo.totalSoal}</td>
+    </tr>`;
+  }).join('');
+  updateGenBtn();
+}
+
+function updateGenBtn() {
+  const checked = document.querySelectorAll('.sb-check:checked').length;
+  const btn = document.getElementById('btn-generate');
+  const hint = document.getElementById('gen-hint');
+  if (!btn) return;
+  if (checked === 0) {
+    btn.textContent = '🔗 Generate Link Ujian';
+    btn.className = 'btn btn-primary fw-semibold';
+    if (hint) hint.textContent = 'Centang minimal satu sub-bab';
+  } else if (checked === 1) {
+    btn.textContent = '🔗 Generate Link Ujian (1 sub-bab)';
+    btn.className = 'btn btn-primary fw-semibold';
+    if (hint) hint.textContent = '1 sub-bab dipilih — single-bank link';
+  } else {
+    btn.textContent = '🔀 Generate Link Multi Sub-bab (' + checked + ' sub-bab)';
+    btn.className = 'btn btn-success fw-semibold';
+    if (hint) hint.textContent = checked + ' sub-bab dipilih — multi-bank link';
+  }
 }
 
 /* ===== LINK GENERATOR =====
@@ -529,55 +462,73 @@ async function sha256(text) {
   return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-async function generateLink(sb) {
-  if (!validateForm(sb)) return;
-  const info = SUBBAB_INFO[sb];
-  const n        = +document.getElementById('n_'        + sb).value;
-  const durasi   = +document.getElementById('dur_'      + sb).value;
-  const pwd      = document.getElementById('pwd_'      + sb).value.trim();
-  const jenis    = document.getElementById('jenis_'    + sb).value;
-  const jenisNo  = +document.getElementById('jenisno_' + sb).value || 1;
+async function generateLinkUjian() {
+  // Kumpulkan sub-bab yang dicentang
+  const checkedBoxes = document.querySelectorAll('.sb-check:checked');
+  if (checkedBoxes.length === 0) { alert('Pilih minimal satu sub-bab terlebih dahulu.'); return; }
+
+  const mk    = document.getElementById('mk-selector').value;
+  const cfg   = readGlobalForm();
+  const { jenis, jenisNo, dur, pwd, startDt, expDt } = cfg;
   const jenisLabel = jenis + '-' + jenisNo;
+  const startTs    = startDt ? new Date(startDt).getTime() : 0;
+  const expTs      = expDt   ? new Date(expDt).getTime()   : 0;
 
   if (!pwd) {
     if (!confirm('⚠️ Password mahasiswa kosong.\nSiapapun bisa mengakses ujian tanpa password.\nLanjutkan?')) return;
   }
-
-  // Simpan config (termasuk jenis ujian)
-  localStorage.setItem(LS_PREFIX + 'cfg_' + sb, JSON.stringify({ n, durasi, pwd, jenis, jenisNo }));
-
-  // Hash password
-  const hashedPwd = pwd ? await sha256(pwd) : '';
-
-  // Buat config payload
-  const webhookUrl = (localStorage.getItem(LS_PREFIX + 'webhook_url') || '').trim();
-  const examId = (window.crypto && crypto.randomUUID)
-    ? crypto.randomUUID()
-    : (Date.now().toString(36) + Math.random().toString(36).slice(2, 10));
-  const startDt   = document.getElementById('start_' + sb).value;
-  const expDt     = document.getElementById('exp_'   + sb).value;
-  const startTs   = startDt ? new Date(startDt).getTime() : 0;
-  const expTs     = expDt   ? new Date(expDt).getTime()   : 0;
   if (expTs && expTs < Date.now()) {
     if (!confirm('⚠️ Waktu berakhir yang diset sudah lewat!\nLink akan langsung tidak bisa diakses.\nLanjutkan?')) return;
   }
-  const cfg = {
-    sb, n, d: durasi, p: hashedPwd, ts: Date.now(), id: examId, w: webhookUrl, j: jenisLabel,
-    ...(startTs ? {start: startTs} : {}),
-    ...(expTs   ? {exp:   expTs}   : {})
-  };
-  const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(cfg))));
 
-  // Buat URL (admin.html dan ujian.html harus di folder yang sama)
+  // Validasi jumlah soal
+  const mkInfo = MK_INFO[mk];
+  const sbsArr = [];
+  for (const chk of checkedBoxes) {
+    const sbId   = chk.value;
+    const sbInfo = mkInfo.subbab[sbId];
+    const nEl    = document.querySelector(`.sb-n[data-id="${sbId}"]`);
+    const n      = +(nEl ? nEl.value : 5);
+    if (!n || n < 1 || n > sbInfo.totalSoal) {
+      alert(`Jumlah soal untuk ${sbInfo.nama} harus antara 1 dan ${sbInfo.totalSoal}.`); return;
+    }
+    sbsArr.push({ sb: sbId, n });
+  }
+
+  const webhookUrl = (localStorage.getItem(LS_PREFIX + 'webhook_url') || '').trim();
+  const examId     = (window.crypto && crypto.randomUUID)
+    ? crypto.randomUUID()
+    : (Date.now().toString(36) + Math.random().toString(36).slice(2, 10));
+  const hashedPwd = pwd ? await sha256(pwd) : '';
+
+  // Config: single-bank pakai sb+n, multi-bank pakai sbs:[...]
+  let ujianCfg;
+  if (sbsArr.length === 1) {
+    ujianCfg = { sb: sbsArr[0].sb, n: sbsArr[0].n,
+                 d: dur, p: hashedPwd, ts: Date.now(), id: examId,
+                 w: webhookUrl, j: jenisLabel };
+  } else {
+    ujianCfg = { sbs: sbsArr,
+                 d: dur, p: hashedPwd, ts: Date.now(), id: examId,
+                 w: webhookUrl, j: jenisLabel };
+  }
+  if (startTs) ujianCfg.start = startTs;
+  if (expTs)   ujianCfg.exp   = expTs;
+
+  const encoded   = btoa(unescape(encodeURIComponent(JSON.stringify(ujianCfg))));
   const ujianBase = window.location.href.replace(/\/[^\/]*(\?.*)?$/, '/ujian.html');
-  const link = ujianBase + '#config=' + encodeURIComponent(encoded);
+  const link      = ujianBase + '#config=' + encodeURIComponent(encoded);
+
+  const sbNames = sbsArr.map(s => `${s.sb}(${s.n})`).join(' + ');
+  const totalN  = sbsArr.reduce((a, s) => a + s.n, 0);
 
   document.getElementById('generatedLinkText').textContent = link;
   document.getElementById('linkMeta').innerHTML =
+    `MK: <strong>${mk}</strong> &nbsp;|&nbsp; ` +
     `Jenis: <strong>${jenisLabel}</strong> &nbsp;|&nbsp; ` +
-    `Sub-bab: <strong>${sb}</strong> &nbsp;|&nbsp; ` +
-    `Soal: <strong>${n}</strong> dari ${info.totalSoal} &nbsp;|&nbsp; ` +
-    `Durasi: <strong>${durasi > 0 ? durasi + ' menit' : 'tanpa batas'}</strong> &nbsp;|&nbsp; ` +
+    `Sub-bab: <strong>${sbNames}</strong> &nbsp;|&nbsp; ` +
+    `Total soal: <strong>${totalN}</strong> &nbsp;|&nbsp; ` +
+    `Durasi: <strong>${dur > 0 ? dur + ' menit' : 'tanpa batas'}</strong> &nbsp;|&nbsp; ` +
     `Password: <strong>${pwd ? '****' : 'tidak ada'}</strong> &nbsp;|&nbsp; ` +
     `Dibuat: <strong>${new Date().toLocaleString('id-ID')}</strong>` +
     (startTs ? ` &nbsp;|&nbsp; Mulai: <strong>${new Date(startTs).toLocaleString('id-ID')}</strong>` : '') +
@@ -585,6 +536,7 @@ async function generateLink(sb) {
   document.getElementById('linkCard').style.display = 'block';
   document.getElementById('linkCard').scrollIntoView({ behavior: 'smooth' });
 }
+
 
 function copyLink() {
   const txt = document.getElementById('generatedLinkText').textContent;
