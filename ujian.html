@@ -12,33 +12,26 @@ MathJax = {
     displayMath: [['\\[', '\\]']],
     packages: {'[+]': ['ams', 'boldsymbol']}
   },
-  options: {
-    skipHtmlTags: ['script','noscript','style','textarea','pre']
-  }
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] }
 };
 </script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
 <style>
-  body { background: #f4f6fb; font-family: 'Segoe UI', sans-serif; }
+  body { background: #f4f6fb; font-family: 'Segoe UI', sans-serif; padding-bottom: 46px; }
   .screen { display: none; }
-  .screen.active { display: block; }
   .header-brand {
     background: linear-gradient(135deg, #003366 0%, #0055a5 100%);
-    color: white; padding: 18px 24px; border-radius: 12px 12px 0 0;
-    margin-bottom: 0;
+    color: white; padding: 18px 24px; border-radius: 12px 12px 0 0; margin-bottom: 0;
   }
   .header-brand h4 { margin: 0; font-weight: 700; font-size: 1.1rem; }
   .header-brand small { opacity: 0.85; font-size: 0.82rem; }
-  .card-main {
-    border: none; border-radius: 0 0 12px 12px;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.10);
-  }
+  .card-main { border: none; border-radius: 0 0 12px 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.10); }
   .btn-primary { background: #003366; border-color: #003366; }
   .btn-primary:hover { background: #0055a5; border-color: #0055a5; }
   .timer-box {
     background: #003366; color: white; border-radius: 8px;
     padding: 6px 18px; font-size: 1.1rem; font-weight: 700;
-    display: inline-block; letter-spacing: 1px;
+    display: inline-block; letter-spacing: 1px; white-space: nowrap; flex-shrink: 0;
   }
   .timer-box.urgent { background: #c0392b; animation: pulse 1s infinite; }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.7} }
@@ -46,61 +39,96 @@ MathJax = {
     background: #f8f9ff; border: 1px solid #dde3f0;
     border-radius: 10px; padding: 20px 22px; margin-bottom: 10px;
   }
-  .soal-nomor {
-    font-weight: 700; color: #003366; font-size: 0.95rem;
-    margin-bottom: 8px;
-  }
+  .soal-nomor { font-weight: 700; color: #003366; font-size: 0.95rem; margin-bottom: 8px; }
+  .soal-teks  { margin-bottom: 14px; }
+
+  /* ── Opsi jawaban: satu opsi satu baris (vertikal) ── [FIX BUG 4] */
+  .opsi-list { margin-top: 10px; }
   .option-btn {
-    display: block; width: 100%; text-align: center;
-    background: white; border: 2px solid #c5cfe0;
-    border-radius: 8px; padding: 10px 14px; margin-bottom: 8px;
-    cursor: pointer; transition: all 0.15s; font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    text-align: left;
+    background: white;
+    border: 2px solid #c5cfe0;
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    font-size: 1rem;
+    user-select: none;
   }
-  .option-btn:hover { border-color: #0055a5; background: #eef3ff; }
-  .option-btn.selected { border-color: #003366; background: #dce8ff; font-weight: 600; }
-  .nav-soal {
-    display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px;
+  .option-btn input[type=radio] {
+    flex-shrink: 0; cursor: pointer; width: 16px; height: 16px; accent-color: #003366;
   }
+  .option-btn .opt-math { flex: 1; }
+  .option-btn:hover   { border-color: #0055a5; background: #eef3ff; }
+  .option-btn.selected{ border-color: #003366; background: #dce8ff; font-weight: 600; }
+
+  /* ── Navigasi soal ── */
+  .nav-soal { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
   .nav-soal button {
     width: 36px; height: 36px; border-radius: 6px;
     border: 2px solid #c5cfe0; background: white;
-    font-size: 0.82rem; font-weight: 600; cursor: pointer;
-    transition: all 0.15s;
+    font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: all 0.15s;
   }
   .nav-soal button.answered { background: #003366; color: white; border-color: #003366; }
-  .nav-soal button.current { border-color: #0055a5; box-shadow: 0 0 0 2px #aac4ff; }
+  .nav-soal button.current  { border-color: #0055a5; box-shadow: 0 0 0 2px #aac4ff; } /* [FIX BUG 5] */
+
+  /* ── Rekap ── */
   .recap-table th { background: #003366; color: white; font-size: 0.85rem; }
   .recap-table td { font-size: 0.88rem; vertical-align: middle; }
-  .benar { color: #1a7a3a; font-weight: 700; }
-  .salah { color: #c0392b; font-weight: 700; }
   .skor-box {
     background: linear-gradient(135deg, #003366, #0055a5);
-    color: white; border-radius: 12px; padding: 20px;
-    text-align: center; margin-bottom: 20px;
+    color: white; border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 20px;
   }
   .skor-box .angka { font-size: 3rem; font-weight: 800; }
-  .violation-badge {
-    background: #fff3cd; border: 1px solid #ffc107;
-    border-radius: 6px; padding: 6px 12px; font-size: 0.82rem;
-    margin-top: 8px; display: inline-block;
-  }
+
+  /* ── Violation overlay ── */
   #violation-warning {
     display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.75); z-index: 9999;
-    justify-content: center; align-items: center;
+    background: rgba(0,0,0,0.75); z-index: 9999; justify-content: center; align-items: center;
   }
   #violation-warning.show { display: flex; }
   #violation-warning .box {
-    background: white; border-radius: 12px; padding: 32px 36px;
-    max-width: 400px; text-align: center;
+    background: white; border-radius: 12px; padding: 32px 36px; max-width: 400px; text-align: center;
   }
   .container-sm { max-width: 680px; }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     STUDENT IDENTITY BAR
+     Bar tetap di bawah layar — selalu terlihat dalam screenshot.
+     Muncul di SEMUA halaman begitu link berhasil dibaca, berisi:
+       Sub-bab · Link ID · Waktu buat  (fase awal)
+       + Nama · NIM · Offering         (setelah mahasiswa isi data diri)
+     Tujuan: jika mahasiswa kirim screenshot error, bisa langsung
+     diidentifikasi milik siapa tanpa harus tanya.
+  ═══════════════════════════════════════════════════════════════════ */
+  #student-id-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: #001a40;
+    color: rgba(255,255,255,0.90);
+    padding: 5px 14px;
+    font-size: 0.74rem;
+    display: none;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0 14px;
+    z-index: 4000;
+    border-top: 2px solid #0055a5;
+    min-height: 30px;
+  }
+  #student-id-bar .bar-lbl { opacity: 0.65; margin-right: 2px; }
+  #student-id-bar .bar-val { font-weight: 700; }
+  #student-id-bar .bar-sep { opacity: 0.30; }
 </style>
 </head>
 <body>
 <div class="container container-sm py-4">
 
-<!-- SCREEN: ERROR -->
+<!-- ═══ SCREEN: ERROR ═══ -->
 <div id="screen-error" class="screen">
   <div class="header-brand">
     <h4>⚠️ Pretest Kalkulus</h4>
@@ -111,7 +139,7 @@ MathJax = {
   </div>
 </div>
 
-<!-- SCREEN: PASSWORD -->
+<!-- ═══ SCREEN: PASSWORD ═══ -->
 <div id="screen-password" class="screen">
   <div class="header-brand">
     <h4>🔐 Pretest Kalkulus — Integral Ganda</h4>
@@ -128,7 +156,7 @@ MathJax = {
   </div>
 </div>
 
-<!-- SCREEN: IDENTITY -->
+<!-- ═══ SCREEN: IDENTITY ═══ -->
 <div id="screen-identity" class="screen">
   <div class="header-brand">
     <h4>📝 Data Mahasiswa</h4>
@@ -161,23 +189,22 @@ MathJax = {
   </div>
 </div>
 
-<!-- SCREEN: EXAM -->
+<!-- ═══ SCREEN: EXAM ═══ -->
 <div id="screen-exam" class="screen">
-  <div class="header-brand d-flex justify-content-between align-items-center">
-    <div>
+  <div class="header-brand d-flex justify-content-between align-items-start gap-2">
+    <div style="min-width:0">
       <h4 style="margin:0" id="exam-title">Pretest Sub-bab 15.1</h4>
-      <small id="exam-student-name">—</small>
+      <!-- Nama · NIM · Offering tampil di header ujian -->
+      <small id="exam-student-info" style="display:block;margin-top:4px;font-size:0.80rem;opacity:0.9">—</small>
     </div>
     <div id="timer-display" class="timer-box">--:--</div>
   </div>
   <div class="card card-main p-3">
-    <div class="d-flex justify-content-between align-items-center mb-2">
-      <div class="nav-soal" id="nav-soal"></div>
-    </div>
+    <div class="nav-soal" id="nav-soal"></div>
     <div id="soal-container"></div>
     <div class="d-flex justify-content-between mt-3">
       <button class="btn btn-outline-secondary" id="btn-prev" onclick="gotoSoal(examState.current-1)">◀ Sebelumnya</button>
-      <button class="btn btn-outline-primary" id="btn-next" onclick="gotoSoal(examState.current+1)">Selanjutnya ▶</button>
+      <button class="btn btn-outline-primary"   id="btn-next" onclick="gotoSoal(examState.current+1)">Selanjutnya ▶</button>
     </div>
     <div class="mt-3 border-top pt-3">
       <button class="btn btn-success w-100" onclick="confirmSubmit()">✅ Selesai &amp; Kumpulkan Jawaban</button>
@@ -185,10 +212,11 @@ MathJax = {
   </div>
 </div>
 
-<!-- SCREEN: RECAP -->
+<!-- ═══ SCREEN: RECAP ═══ -->
 <div id="screen-recap" class="screen">
   <div class="header-brand">
     <h4>📊 Hasil Pretest</h4>
+    <!-- Nama · NIM · Offering tampil di header rekap -->
     <small id="recap-student-label">—</small>
   </div>
   <div class="card card-main p-4">
@@ -231,6 +259,9 @@ MathJax = {
   </div>
 </div>
 
+<!-- STUDENT IDENTITY BAR — tampil di semua halaman (bawah layar) -->
+<div id="student-id-bar"></div>
+
 <script>
 // ═══════════════════════════════════════════════════════
 // ANSWER POOL (30 unique values)
@@ -267,7 +298,6 @@ const ANSWER_POOL = [
   { key: "-2/3",         latex: "-\\dfrac{2}{3}" },
   { key: "f(x,y)",       latex: "f(x,y)" }
 ];
-
 
 // ─── SOAL_BANK ───────────────────────────────────────────────────────────────
 const SOAL_BANK = {
@@ -323,9 +353,8 @@ const SOAL_BANK = {
   ]
 };
 
-// ─── Mulberry32 PRNG ─────────────────────────────────────────────────────────
+// ─── Mulberry32 PRNG ──────────────────────────────────────────────────────────
 function nimSeed(str) {
-  // FNV-1a hash → 32-bit unsigned integer
   let h = 2166136261 >>> 0;
   for (let i = 0; i < str.length; i++) {
     h ^= str.charCodeAt(i);
@@ -372,7 +401,8 @@ const examState = {
   current:       0,
   startTime:     null,
   timerInterval: null,
-  violations:    []
+  violations:    [],
+  submitted:     false   // [FIX BUG 2] flag: ujian sudah dikumpulkan
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -401,6 +431,41 @@ function getLatexForKey(soalObj, key) {
   }
   const entry = ANSWER_POOL.find(a => a.key === key);
   return entry ? entry.latex : key;
+}
+
+// ─── STUDENT IDENTITY BAR ─────────────────────────────────────────────────────
+// Dipanggil 2×: (1) setelah config dimuat → tampil sub-bab+link ID
+//               (2) setelah mahasiswa isi data diri → tambah nama+NIM+offering
+function updateStudentBar() {
+  const bar = document.getElementById('student-id-bar');
+  if (!bar) return;
+  const cfg = examState.config;
+  const st  = examState.student;
+  if (!cfg) { bar.style.display = 'none'; return; }
+
+  const idSuffix = cfg.id ? '…' + cfg.id.slice(-8) : String(cfg.ts || '-');
+  const created  = cfg.ts
+    ? new Date(cfg.ts).toLocaleString('id-ID', {
+        day:'2-digit', month:'2-digit', year:'2-digit',
+        hour:'2-digit', minute:'2-digit'
+      })
+    : '-';
+
+  const sep = '<span class="bar-sep"> | </span>';
+  let html =
+    '<span><span class="bar-lbl">Sub-bab:</span><span class="bar-val">' + (cfg.sb||'-') + '</span></span>' + sep +
+    '<span><span class="bar-lbl">Link:</span><span class="bar-val">' + idSuffix + '</span></span>' + sep +
+    '<span><span class="bar-lbl">Dibuat:</span><span class="bar-val">' + created + '</span></span>';
+
+  if (st) {
+    html += sep +
+      '<span>👤 <span class="bar-val">' + st.nama + '</span></span>' + sep +
+      '<span><span class="bar-lbl">NIM:</span><span class="bar-val">' + st.nim + '</span></span>' + sep +
+      '<span><span class="bar-lbl">Offering:</span><span class="bar-val">' + st.offering + '</span></span>';
+  }
+
+  bar.innerHTML = html;
+  bar.style.display = 'flex';
 }
 
 // ─── Screen: Password ─────────────────────────────────────────────────────────
@@ -448,36 +513,46 @@ function startExam() {
   examState.current    = 0;
   examState.startTime  = Date.now();
   examState.violations = [];
+  examState.submitted  = false;
 
-  // Acak soal berdasarkan NIM (deterministik — NIM sama → soal sama)
-  const pool = SOAL_BANK[examState.config.sb] || [];
-  const rng  = seededRandom(nimSeed(nim));
-  const n    = Math.min(Number(examState.config.n), pool.length);
+  // ── Acak soal: seed = NIM + examId (berbeda tiap link) ──────────────────────
+  // [FIX BUG 1] examSeed dari UUID unik per-link memastikan soal berbeda
+  //             tiap kali admin generate link baru.
+  const pool     = SOAL_BANK[examState.config.sb] || [];
+  const examSeed = String(examState.config.id || examState.config.ts || 'legacy');
+  const rng      = seededRandom(nimSeed(nim + '|' + examSeed));
+  const n        = Math.min(Number(examState.config.n), pool.length);
   const selectedSoal = shuffle(pool, rng).slice(0, n);
 
-  // Bangun opsi per soal (acak per NIM + per soal, deduplikasi key)
-  examState.soal = selectedSoal.map(s => {
-    const rngOpt = seededRandom(nimSeed(nim + '|' + String(s.id)));
+  // ── Bangun opsi per soal ──────────────────────────────────────────────────────
+  // [FIX BUG 1] Sertakan examSeed dalam seed opsi agar opsi juga bervariasi per link
+  examState.soal = selectedSoal.map(function (s) {
+    const rngOpt = seededRandom(nimSeed(nim + '|' + examSeed + '|' + String(s.id)));
     if (s.fixedOptions) {
       return Object.assign({}, s, { options: shuffle(s.fixedOptions, rngOpt) });
     }
     const correctEntry = ANSWER_POOL.find(a => a.key === s.kunci);
     const seenKeys = new Set([s.kunci]);
-    const uniqueDistractors = ANSWER_POOL.filter(a => {
+    const uniqueDistractors = ANSWER_POOL.filter(function (a) {
       if (seenKeys.has(a.key)) return false;
       seenKeys.add(a.key);
       return true;
     });
     const distractors = shuffle(uniqueDistractors, rngOpt).slice(0, 4);
     const opts = [correctEntry].concat(distractors);
-    const rngShuffle = seededRandom(nimSeed(nim + '|opt|' + String(s.id)));
+    // [FIX BUG 1] seed shuffle opsi juga sertakan examSeed
+    const rngShuffle = seededRandom(nimSeed(nim + '|' + examSeed + '|opt|' + String(s.id)));
     return Object.assign({}, s, { options: shuffle(opts, rngShuffle) });
   });
 
+  // ── Update tampilan header ujian: nama, NIM, Offering ────────────────────────
   document.getElementById('exam-title').textContent =
     'Integral Ganda — Sub-bab ' + examState.config.sb;
-  document.getElementById('exam-student-name').textContent =
-    nama + '  (' + nim + ')';
+  document.getElementById('exam-student-info').textContent =
+    nama + '  |  NIM: ' + nim + '  |  Offering: ' + offering;
+
+  // Update identity bar dengan data mahasiswa
+  updateStudentBar();
 
   showScreen('screen-exam');
   renderNav();
@@ -491,11 +566,13 @@ function renderNav() {
   const nav = document.getElementById('nav-soal');
   if (!nav) return;
   nav.innerHTML = '';
-  examState.soal.forEach((s, i) => {
+  examState.soal.forEach(function (s, i) {
     const btn = document.createElement('button');
-    btn.className = 'nav-btn' +
-      (examState.answers[i] !== undefined ? ' answered' : '') +
-      (i === examState.current ? ' active' : '');
+    // [FIX BUG 5] gunakan class 'current' (sesuai CSS .nav-soal button.current)
+    const cls = [];
+    if (examState.answers[i] !== undefined) cls.push('answered');
+    if (i === examState.current)            cls.push('current');
+    btn.className = cls.join(' ');
     btn.textContent = i + 1;
     btn.onclick = function () { gotoSoal(i); };
     nav.appendChild(btn);
@@ -510,22 +587,32 @@ function renderSoal(idx) {
   const container  = document.getElementById('soal-container');
   const userAnswer = examState.answers[idx];
 
+  // [FIX BUG 4] gunakan class 'option-btn' (ada di CSS) bukan 'option-label'
+  //             label = display:flex → opsi tampil vertikal, satu per baris
   const optHtml = s.options.map(function (opt) {
-    const checked = userAnswer === opt.key ? 'checked' : '';
-    return '<label class="option-label">' +
-      '<input type="radio" name="soal_' + idx + '" data-key="' + opt.key + '" ' + checked + '>' +
+    const isSel = (userAnswer === opt.key);
+    return '<label class="option-btn' + (isSel ? ' selected' : '') + '">' +
+      '<input type="radio" name="soal_' + idx + '" data-key="' + opt.key + '"' +
+      (isSel ? ' checked' : '') + '>' +
       '<span class="opt-math">\\(' + opt.latex + '\\)</span>' +
       '</label>';
   }).join('');
 
   container.innerHTML =
-    '<div class="soal-nomor">Soal <strong>' + (idx + 1) + '</strong> dari ' + total + '</div>' +
-    '<div class="soal-teks">' + s.q + '</div>' +
-    '<div class="opsi-list">' + optHtml + '</div>';
+    '<div class="soal-card">' +
+      '<div class="soal-nomor">Soal <strong>' + (idx + 1) + '</strong> dari ' + total + '</div>' +
+      '<div class="soal-teks">' + s.q + '</div>' +
+      '<div class="opsi-list">' + optHtml + '</div>' +
+    '</div>';
 
   container.querySelectorAll('input[type=radio]').forEach(function (radio) {
     radio.addEventListener('change', function () {
       examState.answers[idx] = radio.dataset.key;
+      // Update visual: hapus semua .selected lalu tambah ke label yang dipilih
+      container.querySelectorAll('label.option-btn').forEach(function (lbl) {
+        lbl.classList.remove('selected');
+      });
+      radio.closest('label').classList.add('selected');
       renderNav();
     });
   });
@@ -548,28 +635,18 @@ function gotoSoal(idx) {
 function startTimer() {
   const timerEl = document.getElementById('timer-display');
   if (!timerEl) return;
-
   const durasi = Number(examState.config.d);
-  if (!durasi || durasi <= 0) {
-    timerEl.textContent = '\u221e'; // ∞
-    return;
-  }
+  if (!durasi || durasi <= 0) { timerEl.textContent = '\u221e'; return; }
 
   let remaining = durasi * 60;
-
   function tick() {
     const mins = String(Math.floor(remaining / 60)).padStart(2, '0');
     const secs = String(remaining % 60).padStart(2, '0');
     timerEl.textContent = mins + ':' + secs;
     if (remaining <= 300) timerEl.classList.add('urgent');
-    if (remaining <= 0) {
-      clearInterval(examState.timerInterval);
-      submitExam(true);
-      return;
-    }
+    if (remaining <= 0) { clearInterval(examState.timerInterval); submitExam(true); return; }
     remaining--;
   }
-
   tick();
   examState.timerInterval = setInterval(tick, 1000);
 }
@@ -589,7 +666,10 @@ function setupAntiCheat() {
     }
   }, true);
 
+  // [FIX BUG 2] Semua handler cek examState.submitted terlebih dahulu.
+  //             Jika ujian sudah dikumpulkan, pindah tab TIDAK lagi dianggap pelanggaran.
   document.addEventListener('visibilitychange', function () {
+    if (examState.submitted) return;   // ← FIX: abaikan setelah selesai
     if (document.hidden) {
       examState.violations.push({ type: 'tab_switch', time: new Date().toISOString() });
       showViolationWarning('Anda berpindah tab! Tindakan ini telah dicatat.');
@@ -597,10 +677,12 @@ function setupAntiCheat() {
   });
 
   window.addEventListener('blur', function () {
+    if (examState.submitted) return;   // ← FIX
     examState.violations.push({ type: 'window_blur', time: new Date().toISOString() });
   });
 
   window.addEventListener('beforeunload', function () {
+    if (examState.submitted) return;   // ← FIX: boleh tutup setelah selesai
     examState.violations.push({ type: 'page_leave', time: new Date().toISOString() });
   });
 }
@@ -629,6 +711,9 @@ function confirmSubmit() {
 }
 
 function submitExam(autoSubmit) {
+  // [FIX BUG 2] Tandai submitted SEBELUM apapun agar event listener
+  //             tidak lagi mencatat pelanggaran saat screen berganti
+  examState.submitted = true;
   if (examState.timerInterval) clearInterval(examState.timerInterval);
 
   let benar = 0;
@@ -650,6 +735,7 @@ function submitExam(autoSubmit) {
 function showRecap(details, benar, total, skor) {
   const st = examState.student;
 
+  // Header: nama, NIM, Offering
   const labelEl = document.getElementById('recap-student-label');
   if (labelEl) labelEl.textContent =
     st.nama + '  |  NIM: ' + st.nim + '  |  Offering: ' + st.offering;
@@ -664,7 +750,11 @@ function showRecap(details, benar, total, skor) {
     return v.type === 'tab_switch';
   }).length;
   const violEl = document.getElementById('recap-violations');
-  if (violEl) violEl.textContent = 'Jumlah perpindahan tab: ' + violCount;
+  if (violEl) {
+    violEl.innerHTML = violCount > 0
+      ? '<div class="alert alert-warning py-2 small mb-2">⚠️ Jumlah perpindahan tab terdeteksi: <strong>' + violCount + '</strong></div>'
+      : '<div class="alert alert-success py-2 small mb-2">✅ Tidak ada perpindahan tab terdeteksi.</div>';
+  }
 
   const tbody = document.getElementById('recap-tbody');
   if (tbody) {
@@ -692,31 +782,49 @@ function showRecap(details, benar, total, skor) {
 
 // ─── Webhook ke Google Sheets ─────────────────────────────────────────────────
 async function sendWebhook(details, benar, total, skor) {
-  const webhookUrl = localStorage.getItem(LS_PREFIX + 'webhook_url');
-  if (!webhookUrl) return;
+  // [FIX BUG 3] Hapus referensi LS_PREFIX — variabel itu hanya ada di admin.html,
+  //             tidak di ujian.html. URL webhook HARUS ter-embed di dalam link
+  //             (field 'w' pada config) saat admin generate link.
+  const webhookUrl = (examState.config && examState.config.w)
+    ? String(examState.config.w).trim()
+    : '';   // ← FIX: fallback kosong, bukan localStorage
+
+  if (!webhookUrl) {
+    console.warn('[Ujian] Webhook tidak ter-embed pada link. ' +
+                 'Pastikan admin menyimpan URL webhook SEBELUM generate link.');
+    return;
+  }
+
   const st = examState.student;
   const payload = {
-    timestamp:  new Date().toISOString(),
-    subbab:     examState.config.sb,
-    nama:       st.nama,
-    nim:        st.nim,
-    offering:   st.offering,
-    email:      st.email,
-    wa:         st.wa,
-    n_soal:     total,
-    benar:      benar,
-    score:      skor,
-    answers:    details,
-    violations: examState.violations
+    timestamp:    new Date().toISOString(),
+    exam_id:      examState.config.id || '',
+    subbab:       examState.config.sb,
+    question_ids: examState.soal.map(function (s) { return s.id; }),
+    nama:         st.nama,
+    nim:          st.nim,
+    offering:     st.offering,
+    email:        st.email,
+    wa:           st.wa,
+    n_soal:       total,
+    benar:        benar,
+    score:        skor,
+    answers:      details,
+    violations:   examState.violations
   };
+
   try {
     await fetch(webhookUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload),
+      keepalive: true
     });
   } catch (e) {
-    console.warn('Webhook gagal:', e.message);
+    console.error('Pengiriman hasil ke Google Sheets gagal:', e);
+    alert('Hasil ujian tampil, tetapi pengiriman ke Google Sheets gagal.\n' +
+          'Segera hubungi dosen/pengawas dan tunjukkan halaman ini.');
   }
 }
 
@@ -732,9 +840,9 @@ document.addEventListener('DOMContentLoaded', function () {
     return;
   }
   examState.config = cfg;
+  updateStudentBar();   // ← tampilkan bar sub-bab + link ID segera
   showScreen('screen-password');
 });
-
 </script>
 </body>
 </html>

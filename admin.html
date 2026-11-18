@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin — Pretest Kalkulus Bab 15</title>
+  <title>Admin Testing — Pretest Kalkulus Bab 15</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     body { background: #eef2f7; }
@@ -27,7 +27,7 @@
     <div class="card shadow-lg border-0">
       <div class="card-header header-brand text-center py-3">
         <h5 class="mb-0 fw-bold">🔐 Admin Panel</h5>
-        <small>Pretest Kalkulus Bab 15 — Universitas Negeri Malang</small>
+        <small>PREVIEW / TESTING — Pretest Kalkulus Bab 15 — Universitas Negeri Malang</small>
       </div>
       <div class="card-body p-4">
         <label class="form-label fw-semibold">Password Admin</label>
@@ -54,7 +54,7 @@
   <!-- Header -->
   <div class="d-flex justify-content-between align-items-start mb-4 pb-3 border-bottom">
     <div>
-      <h4 class="mb-0 fw-bold text-primary">📋 Admin Panel — Pretest Kalkulus Bab 15</h4>
+      <h4 class="mb-0 fw-bold text-primary">🧪 Admin Panel TESTING — Pretest Kalkulus Bab 15</h4>
       <small class="text-muted">Universitas Negeri Malang — FMIPA Matematika</small>
     </div>
     <div class="d-flex gap-2 flex-wrap">
@@ -116,34 +116,64 @@
         <hr>
         <p class="small fw-semibold mb-2">📄 Kode Google Apps Script (copy ke Apps Script Editor):</p>
         <div class="apps-script">function doPost(e) {
+  var lock = LockService.getScriptLock();
   try {
+    lock.waitLock(10000);
     var data = JSON.parse(e.postData.contents);
-    var ss   = SpreadsheetApp.getActiveSpreadsheet();
-
-    // --- Sheet Rekap Utama ---
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = ss.getSheetByName('Rekap') || ss.insertSheet('Rekap');
+
+    var headers = [
+      'Timestamp', 'ID Ujian', 'Sub-bab', 'Nama', 'NIM', 'Offering',
+      'Email', 'No. WA', 'Total Soal', 'Benar', 'Skor',
+      'Jumlah Pelanggaran', 'ID Soal Terpilih',
+      'Detail Jawaban', 'Detail Pelanggaran'
+    ];
     if (sheet.getLastRow() === 0) {
-      sheet.appendRow(['Timestamp','Sub-bab','Nama','NIM','Offering',
-                       'Email','No.WA','Total Soal','Benar','Skor',
-                       'Jml Pelanggaran','Detail Jawaban','Detail Pelanggaran']);
+      sheet.appendRow(headers);
+      sheet.setFrozenRows(1);
     }
+
+    if (data.type === 'test') {
+      sheet.appendRow([
+        data.timestamp || new Date().toISOString(), 'TEST', 'TEST',
+        'Uji koneksi webhook', '', '', '', '', 0, 0, 0, 0, '[]', '{}', '[]'
+      ]);
+      return ContentService.createTextOutput(
+        JSON.stringify({status: 'ok', message: 'Test row recorded'})
+      ).setMimeType(ContentService.MimeType.JSON);
+    }
+
     var violations = data.violations || [];
+    var answers = data.answers || [];
     sheet.appendRow([
-      data.timestamp, data.subbab, data.nama, data.nim,
-      data.offering, data.email, data.wa,
-      data.n_soal, data.benar, data.score,
+      data.timestamp || new Date().toISOString(),
+      data.exam_id || '',
+      data.subbab || '',
+      data.nama || '',
+      data.nim || '',
+      data.offering || '',
+      data.email || '',
+      data.wa || '',
+      data.n_soal || 0,
+      data.benar || 0,
+      data.score || 0,
       violations.length,
-      JSON.stringify(data.answers),
+      JSON.stringify(data.question_ids || []),
+      JSON.stringify(answers),
       JSON.stringify(violations)
     ]);
 
-    return ContentService
-      .createTextOutput(JSON.stringify({status:'ok'}))
-      .setMimeType(ContentService.MimeType.JSON);
-  } catch(err) {
-    return ContentService
-      .createTextOutput(JSON.stringify({status:'error',msg:err.message}))
-      .setMimeType(ContentService.MimeType.JSON);
+    return ContentService.createTextOutput(
+      JSON.stringify({status: 'ok'})
+    ).setMimeType(ContentService.MimeType.JSON);
+
+  } catch (err) {
+    return ContentService.createTextOutput(
+      JSON.stringify({status: 'error', message: err.message})
+    ).setMimeType(ContentService.MimeType.JSON);
+  } finally {
+    try { lock.releaseLock(); } catch (e) {}
   }
 }</div>
         <p class="small text-muted mt-2">
@@ -167,7 +197,7 @@
 <script>
 /* ===== KONSTANTA ===== */
 const DEFAULT_ADMIN_PWD = 'admin2024';
-const LS_PREFIX = 'kalk15_';
+const LS_PREFIX = 'kalk15_testing_';
 
 // Data sub-bab yang tersedia
 const SUBBAB_INFO = {
@@ -319,7 +349,11 @@ async function generateLink(sb) {
   const hashedPwd = pwd ? await sha256(pwd) : '';
 
   // Buat config payload
-  const cfg = { sb, n, d: durasi, p: hashedPwd, ts: Date.now() };
+  const webhookUrl = (localStorage.getItem(LS_PREFIX + 'webhook_url') || '').trim();
+  const examId = (window.crypto && crypto.randomUUID)
+    ? crypto.randomUUID()
+    : (Date.now().toString(36) + Math.random().toString(36).slice(2, 10));
+  const cfg = { sb, n, d: durasi, p: hashedPwd, ts: Date.now(), id: examId, w: webhookUrl };
   const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(cfg))));
 
   // Buat URL (admin.html dan ujian.html harus di folder yang sama)
@@ -372,11 +406,11 @@ async function testWebhook() {
   try {
     const res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ type: 'test', timestamp: new Date().toISOString() })
     });
-    const text = await res.text();
-    alert('✅ Koneksi berhasil!\nResponse: ' + text.substring(0, 200));
+    alert('✅ Permintaan uji koneksi telah dikirim. Karena mode no-cors, browser tidak mengizinkan pembacaan respons. Periksa apakah baris TEST muncul di Apps Script jika fitur pencatatan test diaktifkan.');
   } catch (err) {
     alert('❌ Gagal terhubung:\n' + err.message +
           '\n\nPastikan Apps Script sudah di-deploy sebagai "Anyone" dan URL sudah benar.');
