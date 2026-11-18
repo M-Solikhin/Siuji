@@ -270,6 +270,15 @@ MathJax = {
 
 </div><!-- /container -->
 
+<!-- FOOTER ATRIBUSI -->
+<footer style="text-align:center;padding:18px 16px 50px;font-size:0.74rem;color:#8a9bb0;margin-top:8px">
+  <div style="font-weight:600;color:#5a6a80;margin-bottom:4px">Aplikasi Ujian Departemen Matematika</div>
+  Departemen Matematika, Universitas Negeri Malang &nbsp;·&nbsp;
+  Dikembangkan oleh <strong>Mukhammad Solikhin, M.Si.</strong><br>
+  <a href="mailto:mukhammad.solikhin.fmipa@um.ac.id"
+     style="color:#8a9bb0;text-decoration:none">mukhammad.solikhin.fmipa@um.ac.id</a>
+</footer>
+
 <!-- VIOLATION WARNING OVERLAY -->
 <div id="violation-warning">
   <div class="box">
@@ -493,6 +502,17 @@ function hapusSesi() {
   var key = _sesiKey();
   if (key) try { localStorage.removeItem(key); } catch(e) {}
 }
+// Tandai ujian sudah dikerjakan — cegah pengulangan dengan link+NIM sama
+function _markDone() {
+  if (!examState.config || !examState.student) return;
+  var key = 'ujian_selesai_' + (examState.config.id || examState.config.ts) + '|' + examState.student.nim;
+  try { localStorage.setItem(key, Date.now().toString()); } catch(e) {}
+}
+function _sudahSelesai(nim) {
+  if (!examState.config) return false;
+  var key = 'ujian_selesai_' + (examState.config.id || examState.config.ts) + '|' + nim;
+  try { return !!localStorage.getItem(key); } catch(e) { return false; }
+}
 function muatSesi() {
   var key = _sesiKey();
   if (!key) return null;
@@ -521,6 +541,7 @@ function updateStudentBar() {
   const sep = '<span class="bar-sep"> | </span>';
   let html =
     '<span><span class="bar-lbl">Sub-bab:</span><span class="bar-val">' + (cfg.sb||'-') + '</span></span>' + sep +
+    (cfg.j ? '<span><span class="bar-lbl">Jenis:</span><span class="bar-val">' + cfg.j + '</span></span>' + sep : '')+
     '<span><span class="bar-lbl">Link:</span><span class="bar-val">' + idSuffix + '</span></span>' + sep +
     '<span><span class="bar-lbl">Dibuat:</span><span class="bar-val">' + created + '</span></span>';
 
@@ -590,6 +611,16 @@ function startExam() {
   errEl.style.display = 'none';
 
   examState.student    = { nama, nim, mk, offering, email, wa };
+
+  // [Fitur 1] Cegah pengerjaan ulang: cek apakah NIM+link ini sudah pernah dikumpulkan
+  if (_sudahSelesai(nim)) {
+    errEl.textContent = '⛔ NIM ' + nim + ' sudah mengumpulkan ujian ini sebelumnya. ' +
+      'Jika ada kendala teknis, hubungi dosen untuk mendapatkan link ujian baru.';
+    errEl.style.display = 'block';
+    examState.student = null;
+    return;
+  }
+
   examState.answers    = {};
   examState.current    = 0;
   examState.startTime  = Date.now();
@@ -654,8 +685,9 @@ function startExam() {
   }
 
   // ── Update tampilan header ujian: nama, NIM, Offering ────────────────────────
+  const jenisUjian = examState.config.j || '';
   document.getElementById('exam-title').textContent =
-    'Integral Ganda — Sub-bab ' + examState.config.sb;
+    (jenisUjian ? jenisUjian + ' — ' : '') + 'Sub-bab ' + examState.config.sb;
   document.getElementById('exam-student-info').textContent =
     mk + '  |  ' + nama + '  |  NIM: ' + nim + '  |  Offering: ' + offering;
 
@@ -880,7 +912,8 @@ function confirmSubmit() {
 function submitExam(autoSubmit) {
   examState.submitted   = true;
   examState.autoSubmit  = !!autoSubmit;
-  hapusSesi();   // hapus sesi tersimpan — ujian sudah selesai   // simpan untuk payload webhook
+  hapusSesi();   // hapus sesi tersimpan — ujian sudah selesai
+  _markDone();   // [Fitur 1] tandai NIM+link sudah selesai — cegah pengerjaan ulang
   if (examState.timerInterval) clearInterval(examState.timerInterval);
 
   // Notifikasi khusus jika dikumpulkan otomatis karena waktu habis
@@ -1021,6 +1054,7 @@ async function sendWebhook(details, benar, salah, kosong, total, skor) {
     exam_id:        examState.config.id || '',
     subbab:         examState.config.sb,
     question_ids:   examState.soal.map(function (s) { return s.id; }),
+    jenis_ujian:    examState.config.j || '',
     mk:             st.mk || '',
     nama:           st.nama,
     nim:            st.nim,
@@ -1065,6 +1099,29 @@ document.addEventListener('DOMContentLoaded', function () {
     showScreen('screen-error');
     return;
   }
+  // [Fitur 3] Cek waktu berlaku link
+  var _now = Date.now();
+  if (cfg.start && _now < cfg.start) {
+    var _mulaiStr = new Date(cfg.start).toLocaleString('id-ID',
+      {day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    var errEl3 = document.getElementById('error-msg');
+    if (errEl3) errEl3.innerHTML =
+      '⏳ Ujian belum dimulai.<br>' +
+      '<span style="font-size:0.85rem;font-weight:normal">Waktu mulai: ' + _mulaiStr + '</span>';
+    showScreen('screen-error');
+    return;
+  }
+  if (cfg.exp && _now > cfg.exp) {
+    var _expStr = new Date(cfg.exp).toLocaleString('id-ID',
+      {day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    var errEl4 = document.getElementById('error-msg');
+    if (errEl4) errEl4.innerHTML =
+      '⛔ Link ujian ini sudah berakhir.<br>' +
+      '<span style="font-size:0.85rem;font-weight:normal">Berakhir pada: ' + _expStr + '</span>';
+    showScreen('screen-error');
+    return;
+  }
+
   examState.config = cfg;
   updateStudentBar();   // ← tampilkan bar sub-bab + link ID segera
   showScreen('screen-password');

@@ -186,8 +186,12 @@
     </div>
   </div>
 
-  <div class="mt-5 pt-3 border-top text-center text-muted small">
-    Pretest Kalkulus — Universitas Negeri Malang | Dibuat untuk keperluan akademik
+  <div class="mt-5 pt-3 border-top text-center" style="font-size:0.74rem;color:#8a9bb0">
+    <div style="font-weight:600;color:#5a6a80;margin-bottom:4px">Aplikasi Ujian Departemen Matematika</div>
+    Departemen Matematika, Universitas Negeri Malang &nbsp;·&nbsp;
+    Dikembangkan oleh <strong>Mukhammad Solikhin, M.Si.</strong><br>
+    <a href="mailto:mukhammad.solikhin.fmipa@um.ac.id" style="color:#8a9bb0;text-decoration:none">
+      mukhammad.solikhin.fmipa@um.ac.id</a>
   </div>
 </div><!-- /dashboard -->
 
@@ -256,7 +260,7 @@ function changeAdminPwd() {
 /* ===== RENDER SUB-BAB ===== */
 function getConfig(sb) {
   const s = localStorage.getItem(LS_PREFIX + 'cfg_' + sb);
-  return s ? JSON.parse(s) : { n: 10, durasi: 30, pwd: '' };
+  return s ? JSON.parse(s) : { n: 10, durasi: 30, pwd: '', jenis: 'Pretest', jenisNo: 1, startDt: '', expDt: '' };
 }
 
 function renderSubbab() {
@@ -287,6 +291,32 @@ function renderSubbab() {
                    placeholder="cth: pretest15a" autocomplete="off">
             <div class="form-text">Dibagikan ke mhs sebelum ujian</div>
           </div>
+          <div class="col-sm-6">
+            <label class="form-label small fw-semibold">Jenis Ujian</label>
+            <div class="input-group">
+              <select id="jenis_${id}" class="form-select">
+                <option value="Pretest"  ${(cfg.jenis||'Pretest')==='Pretest'  ? 'selected':''}>Pretest</option>
+                <option value="Posttest" ${(cfg.jenis||'')==='Posttest' ? 'selected':''}>Posttest</option>
+                <option value="Kuis"     ${(cfg.jenis||'')==='Kuis'     ? 'selected':''}>Kuis</option>
+                <option value="UTS"      ${(cfg.jenis||'')==='UTS'      ? 'selected':''}>UTS</option>
+                <option value="UAS"      ${(cfg.jenis||'')==='UAS'      ? 'selected':''}>UAS</option>
+              </select>
+              <span class="input-group-text">ke-</span>
+              <input type="number" id="jenisno_${id}" class="form-control" style="max-width:70px"
+                     value="${cfg.jenisNo||1}" min="1" max="99" title="Nomor urut (opsional)">
+            </div>
+            <div class="form-text">Contoh: Pretest ke-1 → label <strong>Pretest-1</strong></div>
+          </div>
+          <div class="col-sm-6">
+            <label class="form-label small fw-semibold">⏰ Waktu Mulai Link <span class="text-muted fw-normal">(opsional)</span></label>
+            <input type="datetime-local" id="start_${id}" class="form-control" value="${cfg.startDt||''}">
+            <div class="form-text">Kosongkan = langsung aktif saat link dibagikan</div>
+          </div>
+          <div class="col-sm-6">
+            <label class="form-label small fw-semibold">⛔ Waktu Berakhir Link <span class="text-muted fw-normal">(opsional)</span></label>
+            <input type="datetime-local" id="exp_${id}" class="form-control" value="${cfg.expDt||''}">
+            <div class="form-text">Kosongkan = tidak ada batas waktu</div>
+          </div>
         </div>
         <div class="mt-3 d-flex flex-wrap gap-2">
           <button class="btn btn-primary fw-semibold" onclick="generateLink('${id}')">
@@ -304,10 +334,14 @@ function renderSubbab() {
 
 function saveOnly(sb) {
   if (!validateForm(sb)) return;
-  const n = +document.getElementById('n_' + sb).value;
-  const durasi = +document.getElementById('dur_' + sb).value;
-  const pwd = document.getElementById('pwd_' + sb).value.trim();
-  localStorage.setItem(LS_PREFIX + 'cfg_' + sb, JSON.stringify({ n, durasi, pwd }));
+  const n       = +document.getElementById('n_'       + sb).value;
+  const durasi  = +document.getElementById('dur_'     + sb).value;
+  const pwd     = document.getElementById('pwd_'     + sb).value.trim();
+  const jenis   = document.getElementById('jenis_'   + sb).value;
+  const jenisNo = +document.getElementById('jenisno_'+ sb).value || 1;
+  const startDt = document.getElementById('start_' + sb).value;
+  const expDt   = document.getElementById('exp_'   + sb).value;
+  localStorage.setItem(LS_PREFIX + 'cfg_' + sb, JSON.stringify({ n, durasi, pwd, jenis, jenisNo, startDt, expDt }));
   alert('✅ Konfigurasi disimpan!');
 }
 
@@ -334,16 +368,19 @@ async function sha256(text) {
 async function generateLink(sb) {
   if (!validateForm(sb)) return;
   const info = SUBBAB_INFO[sb];
-  const n = +document.getElementById('n_' + sb).value;
-  const durasi = +document.getElementById('dur_' + sb).value;
-  const pwd = document.getElementById('pwd_' + sb).value.trim();
+  const n        = +document.getElementById('n_'        + sb).value;
+  const durasi   = +document.getElementById('dur_'      + sb).value;
+  const pwd      = document.getElementById('pwd_'      + sb).value.trim();
+  const jenis    = document.getElementById('jenis_'    + sb).value;
+  const jenisNo  = +document.getElementById('jenisno_' + sb).value || 1;
+  const jenisLabel = jenis + '-' + jenisNo;
 
   if (!pwd) {
     if (!confirm('⚠️ Password mahasiswa kosong.\nSiapapun bisa mengakses ujian tanpa password.\nLanjutkan?')) return;
   }
 
-  // Simpan config
-  localStorage.setItem(LS_PREFIX + 'cfg_' + sb, JSON.stringify({ n, durasi, pwd }));
+  // Simpan config (termasuk jenis ujian)
+  localStorage.setItem(LS_PREFIX + 'cfg_' + sb, JSON.stringify({ n, durasi, pwd, jenis, jenisNo }));
 
   // Hash password
   const hashedPwd = pwd ? await sha256(pwd) : '';
@@ -353,7 +390,18 @@ async function generateLink(sb) {
   const examId = (window.crypto && crypto.randomUUID)
     ? crypto.randomUUID()
     : (Date.now().toString(36) + Math.random().toString(36).slice(2, 10));
-  const cfg = { sb, n, d: durasi, p: hashedPwd, ts: Date.now(), id: examId, w: webhookUrl };
+  const startDt   = document.getElementById('start_' + sb).value;
+  const expDt     = document.getElementById('exp_'   + sb).value;
+  const startTs   = startDt ? new Date(startDt).getTime() : 0;
+  const expTs     = expDt   ? new Date(expDt).getTime()   : 0;
+  if (expTs && expTs < Date.now()) {
+    if (!confirm('⚠️ Waktu berakhir yang diset sudah lewat!\nLink akan langsung tidak bisa diakses.\nLanjutkan?')) return;
+  }
+  const cfg = {
+    sb, n, d: durasi, p: hashedPwd, ts: Date.now(), id: examId, w: webhookUrl, j: jenisLabel,
+    ...(startTs ? {start: startTs} : {}),
+    ...(expTs   ? {exp:   expTs}   : {})
+  };
   const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(cfg))));
 
   // Buat URL (admin.html dan ujian.html harus di folder yang sama)
@@ -362,11 +410,14 @@ async function generateLink(sb) {
 
   document.getElementById('generatedLinkText').textContent = link;
   document.getElementById('linkMeta').innerHTML =
+    `Jenis: <strong>${jenisLabel}</strong> &nbsp;|&nbsp; ` +
     `Sub-bab: <strong>${sb}</strong> &nbsp;|&nbsp; ` +
     `Soal: <strong>${n}</strong> dari ${info.totalSoal} &nbsp;|&nbsp; ` +
     `Durasi: <strong>${durasi > 0 ? durasi + ' menit' : 'tanpa batas'}</strong> &nbsp;|&nbsp; ` +
     `Password: <strong>${pwd ? '****' : 'tidak ada'}</strong> &nbsp;|&nbsp; ` +
-    `Dibuat: <strong>${new Date().toLocaleString('id-ID')}</strong>`;
+    `Dibuat: <strong>${new Date().toLocaleString('id-ID')}</strong>` +
+    (startTs ? ` &nbsp;|&nbsp; Mulai: <strong>${new Date(startTs).toLocaleString('id-ID')}</strong>` : '') +
+    (expTs   ? ` &nbsp;|&nbsp; Berakhir: <strong>${new Date(expTs).toLocaleString('id-ID')}</strong>` : '');
   document.getElementById('linkCard').style.display = 'block';
   document.getElementById('linkCard').scrollIntoView({ behavior: 'smooth' });
 }
