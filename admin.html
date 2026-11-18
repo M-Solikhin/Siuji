@@ -510,11 +510,11 @@ async function generateLinkUjian() {
   if (sbsArr.length === 1) {
     ujianCfg = { sb: sbsArr[0].sb, n: sbsArr[0].n,
                  d: dur, p: hashedPwd, ts: Date.now(), id: examId,
-                 w: webhookUrl, j: jenisLabel };
+                 w: webhookUrl, j: jenisLabel, mk: mk };
   } else {
     ujianCfg = { sbs: sbsArr,
                  d: dur, p: hashedPwd, ts: Date.now(), id: examId,
-                 w: webhookUrl, j: jenisLabel };
+                 w: webhookUrl, j: jenisLabel, mk: mk };
   }
   if (startTs) ujianCfg.start = startTs;
   if (expTs)   ujianCfg.exp   = expTs;
@@ -523,7 +523,9 @@ async function generateLinkUjian() {
   const ujianBase = window.location.href.replace(/\/[^\/]*(\?.*)?$/, '/ujian.html');
   const link      = ujianBase + '#config=' + encodeURIComponent(encoded);
 
-  const sbNames = sbsArr.map(s => `${s.sb}(${s.n})`).join(' + ');
+  // Format tampilan: "PBM.1.1" → "Pemodelan 1.1"
+  const _fmtSb = sb => sb.startsWith('PBM.') ? 'Pemodelan ' + sb.slice(4) : sb;
+  const sbNames = sbsArr.map(s => `${_fmtSb(s.sb)}(${s.n})`).join(' + ');
   const totalN  = sbsArr.reduce((a, s) => a + s.n, 0);
 
   document.getElementById('generatedLinkText').textContent = link;

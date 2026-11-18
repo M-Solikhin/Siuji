@@ -787,12 +787,28 @@ function getLatexForKey(soalObj, key) {
 }
 
 // ─── Helper: label sub-bab (single atau multi-bank) ──────────────────────────
+// Format "PBM.1.1" → "Pemodelan 1.1", "15.1" → "15.1" (Kalkulus sudah jelas dari MK)
+function _formatSb(sb) {
+  if (!sb) return '-';
+  if (sb.startsWith('PBM.')) return 'Pemodelan ' + sb.slice(4);
+  return sb;
+}
+
+// Inferensi MK dari sub-bab ID (fallback jika cfg.mk tidak ada)
+function _mkFromSb(sb) {
+  if (!sb) return '';
+  if (sb.startsWith('PBM.'))  return 'Pemodelan Matematika';
+  if (sb.startsWith('MTK.'))  return 'Matematika';
+  if (/^\d+\./.test(sb))      return 'Kalkulus';
+  return '';
+}
+
 function _sbLabel(cfg) {
   if (!cfg) return '-';
   if (cfg.sbs && cfg.sbs.length > 0) {
-    return cfg.sbs.map(function(pc) { return pc.sb; }).join(' & ');
+    return cfg.sbs.map(function(pc) { return _formatSb(pc.sb); }).join(' & ');
   }
-  return cfg.sb || '-';
+  return _formatSb(cfg.sb) || '-';
 }
 
 // ─── Toggle password visibility ───────────────────────────────────────────────
@@ -1485,6 +1501,31 @@ document.addEventListener('DOMContentLoaded', function () {
   examState.config = cfg;
   updateStudentBar();   // ← tampilkan bar sub-bab + link ID segera
   showScreen('screen-password');
+
+  // ── Auto-fill dan lock field MK dari config link ──────────────────────────
+  (function() {
+    const mkEl = document.getElementById('f-mk');
+    if (!mkEl) return;
+    // Ambil MK dari cfg.mk (link baru), fallback inferensi dari sub-bab
+    const firstSb = cfg.sbs ? cfg.sbs[0].sb : (cfg.sb || '');
+    const detectedMk = cfg.mk || _mkFromSb(firstSb);
+    if (detectedMk) {
+      mkEl.value = detectedMk;
+      mkEl.disabled = true;
+      mkEl.style.background = '#e9ecef';
+      mkEl.style.cursor = 'not-allowed';
+      // Tambahkan label kunci agar UX jelas
+      const mkParent = mkEl.closest('.mb-3') || mkEl.parentElement;
+      if (mkParent) {
+        const lbl = mkParent.querySelector('label');
+        if (lbl && !lbl.querySelector('.mk-lock')) {
+          lbl.insertAdjacentHTML('beforeend',
+            ' <span class="mk-lock" style="font-size:0.78rem;color:#6c757d;font-weight:normal">' +
+            '(dari link ujian)</span>');
+        }
+      }
+    }
+  })();
 
   // ── Validator real-time input form identitas ──────────────────────────────
   // NIM: hanya angka, tepat 12 digit, counter langsung terlihat
