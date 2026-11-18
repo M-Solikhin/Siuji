@@ -892,8 +892,11 @@ async function sendWebhook(details, benar, total, skor) {
   }
 
   const st = examState.student;
+  const selesai = Date.now();
   const payload = {
-    timestamp:    new Date().toISOString(),
+    waktu_mulai:   new Date(examState.startTime).toISOString(),
+    waktu_selesai: new Date(selesai).toISOString(),
+    durasi_menit:  Math.round((selesai - examState.startTime) / 60000),
     exam_id:      examState.config.id || '',
     subbab:       examState.config.sb,
     question_ids: examState.soal.map(function (s) { return s.id; }),
