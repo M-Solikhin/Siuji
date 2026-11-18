@@ -469,6 +469,37 @@ function togglePwdVisibility(inputId, iconId) {
   }
 }
 
+// ─── Persistensi Sesi (localStorage) ─────────────────────────────────────────
+// Memungkinkan mahasiswa melanjutkan jika terpaksa keluar/reload halaman.
+// Key: examId|NIM — unik per mahasiswa per link ujian.
+function _sesiKey() {
+  if (!examState.config || !examState.student) return null;
+  return 'ujian_sesi_' + (examState.config.id || examState.config.ts) + '|' + examState.student.nim;
+}
+function simpanSesi() {
+  var key = _sesiKey();
+  if (!key) return;
+  try {
+    localStorage.setItem(key, JSON.stringify({
+      answers:   examState.answers,
+      violations: examState.violations,
+      startTime: examState.startTime,
+      current:   examState.current,
+      savedAt:   Date.now()
+    }));
+  } catch(e) {}
+}
+function hapusSesi() {
+  var key = _sesiKey();
+  if (key) try { localStorage.removeItem(key); } catch(e) {}
+}
+function muatSesi() {
+  var key = _sesiKey();
+  if (!key) return null;
+  try { var s = localStorage.getItem(key); return s ? JSON.parse(s) : null; }
+  catch(e) { return null; }
+}
+
 // ─── STUDENT IDENTITY BAR ─────────────────────────────────────────────────────
 // Dipanggil 2×: (1) setelah config dimuat → tampil sub-bab+link ID
 //               (2) setelah mahasiswa isi data diri → tambah nama+NIM+offering
@@ -595,6 +626,33 @@ function startExam() {
     return Object.assign({}, s, { options: shuffle(opts, rngShuffle) });
   });
 
+  // ── Cek sesi tersimpan — tawarkan lanjut jika ada ──────────────────────────
+  var _saved = muatSesi();
+  var _durMs = Number(examState.config.d) * 60 * 1000;
+  var _adaJawaban = _saved && Object.keys(_saved.answers || {}).length > 0;
+  var _belumHabis = !_durMs || (Date.now() - (_saved && _saved.startTime || 0)) < _durMs;
+
+  if (_saved && _adaJawaban && _belumHabis) {
+    var _simpanPada  = new Date(_saved.savedAt).toLocaleString('id-ID');
+    var _jmlJawaban  = Object.keys(_saved.answers).length;
+    var _elapsedMin  = Math.round((Date.now() - _saved.startTime) / 60000);
+    var _sisaWaktu   = _durMs > 0 ? Math.max(0, Number(examState.config.d) - _elapsedMin) : null;
+    var _msgLanjut   =
+      '📌 Sesi ujian sebelumnya ditemukan!\n\n' +
+      '• Tersimpan pada: ' + _simpanPada + '\n' +
+      '• Jawaban tersimpan: ' + _jmlJawaban + ' soal\n' +
+      (_sisaWaktu !== null ? '• Sisa waktu: ±' + _sisaWaktu + ' menit\n' : '') +
+      '\nLanjutkan dari sesi sebelumnya?\n' +
+      'OK = lanjut  |  Batal = mulai dari awal';
+
+    if (window.confirm(_msgLanjut)) {
+      examState.answers    = _saved.answers    || {};
+      examState.violations = _saved.violations || [];
+      examState.startTime  = _saved.startTime;   // pakai waktu mulai asli
+      examState.current    = _saved.current    || 0;
+    }
+  }
+
   // ── Update tampilan header ujian: nama, NIM, Offering ────────────────────────
   document.getElementById('exam-title').textContent =
     'Integral Ganda — Sub-bab ' + examState.config.sb;
@@ -606,7 +664,7 @@ function startExam() {
 
   showScreen('screen-exam');
   renderNav();
-  renderSoal(0);
+  renderSoal(examState.current);   // mulai dari soal terakhir (0 jika baru)
   startTimer();
   setupAntiCheat();
 }
@@ -658,6 +716,7 @@ function renderSoal(idx) {
   container.querySelectorAll('input[type=radio]').forEach(function (radio) {
     radio.addEventListener('change', function () {
       examState.answers[idx] = radio.dataset.key;
+      simpanSesi();   // auto-save ke localStorage setiap jawaban berubah
       // Update visual: hapus semua .selected lalu tambah ke label yang dipilih
       container.querySelectorAll('label.option-btn').forEach(function (lbl) {
         lbl.classList.remove('selected');
@@ -688,7 +747,9 @@ function startTimer() {
   const durasi = Number(examState.config.d);
   if (!durasi || durasi <= 0) { timerEl.textContent = '\u221e'; return; }
 
-  let remaining = durasi * 60;
+  // Hitung sisa waktu sebenarnya berdasarkan startTime (penting untuk sesi restore)
+  const elapsed = Math.floor((Date.now() - (examState.startTime || Date.now())) / 1000);
+  let remaining = Math.max(0, durasi * 60 - elapsed);
   function tick() {
     const mins = String(Math.floor(remaining / 60)).padStart(2, '0');
     const secs = String(remaining % 60).padStart(2, '0');
@@ -817,10 +878,15 @@ function confirmSubmit() {
 }
 
 function submitExam(autoSubmit) {
-  // [FIX BUG 2] Tandai submitted SEBELUM apapun agar event listener
-  //             tidak lagi mencatat pelanggaran saat screen berganti
-  examState.submitted = true;
+  examState.submitted   = true;
+  examState.autoSubmit  = !!autoSubmit;
+  hapusSesi();   // hapus sesi tersimpan — ujian sudah selesai   // simpan untuk payload webhook
   if (examState.timerInterval) clearInterval(examState.timerInterval);
+
+  // Notifikasi khusus jika dikumpulkan otomatis karena waktu habis
+  if (autoSubmit) {
+    alert('⏰ Waktu ujian telah habis!\n\nJawaban Anda dikumpulkan secara otomatis.\nMohon tunggu, sedang diproses...');
+  }
 
   let benar = 0;
   let kosong = 0;
@@ -850,6 +916,17 @@ function showRecap(details, benar, salah, kosong, total, skor) {
 
   const skorEl = document.getElementById('recap-skor');
   if (skorEl) skorEl.textContent = skor;
+
+  // Keterangan apakah dikumpulkan otomatis atau manual
+  const autoEl = document.createElement('div');
+  autoEl.className = examState.autoSubmit
+    ? 'alert alert-warning py-1 small text-center mb-2'
+    : 'alert alert-success py-1 small text-center mb-2';
+  autoEl.textContent = examState.autoSubmit
+    ? '⏰ Dikumpulkan otomatis — waktu habis'
+    : '✅ Dikumpulkan manual oleh mahasiswa';
+  const sBox = document.querySelector('.skor-box');
+  if (sBox) sBox.after(autoEl);
 
   const benarEl = document.getElementById('recap-benar-label');
   if (benarEl) benarEl.innerHTML =
@@ -955,6 +1032,7 @@ async function sendWebhook(details, benar, salah, kosong, total, skor) {
     salah:          salah,
     kosong:         kosong,
     score:          skor,
+    auto_submit:    examState.autoSubmit ? 'Ya' : 'Tidak',
     pel_berat:      pelBeratList.length,
     pel_ringan:     pelRinganList.length,
     answers:        details,
