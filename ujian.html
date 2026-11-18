@@ -428,8 +428,6 @@ const INTEGRAL_POOL_152_B = [
   { key:"intB5", latex:"\\displaystyle\\int_{0}^{4}\\int_{x/2}^{x}\\!dy\\,dx" }
 ];
 
-// ── Lookup tabel pool per sub-bab ───────────────────────────────────────
-const POOLS = { '15.1': ANSWER_POOL, '15.2': ANSWER_POOL_152, 'PBM.1.1': ANSWER_POOL_PBM11, 'PBM.1.2': ANSWER_POOL_PBM12, 'PBM.1.3': ANSWER_POOL_PBM13, 'PBM.1.4': ANSWER_POOL_PBM14 };
 SOAL_BANK['15.2'] = [
   // ── Luas daerah via integral ganda (No.14-18) ───────────────────────────
   { id:1,  q:"Hitung luas daerah \\(R\\) yang dibatasi oleh \\(y=\\tan x\\), \\(x=0\\), dan \\(y=1\\).", kunci:"pi/4-ln2/2" },
@@ -686,6 +684,9 @@ const STAB_POOL_PBM14 = [
   { key:"saddle",     latex:"\\textbf{Saddle point} — satu arah stabil, satu arah tidak stabil" },
   { key:"stab_cen",   latex:"\\textbf{Pusat} — osilasi konstan tanpa redaman" }
 ];
+
+// ── Lookup tabel pool per sub-bab (semua pool sudah dideklarasikan di atas) ──
+const POOLS = { '15.1': ANSWER_POOL, '15.2': ANSWER_POOL_152, 'PBM.1.1': ANSWER_POOL_PBM11, 'PBM.1.2': ANSWER_POOL_PBM12, 'PBM.1.3': ANSWER_POOL_PBM13, 'PBM.1.4': ANSWER_POOL_PBM14 };
 SOAL_BANK['PBM.1.4'] = [
   // ── Soal 3: Pertempuran Trafalgar ────────────────────────────────────
   { id:"3a", q:"Pertempuran Trafalgar: \\(F(n+1)=F(n)-0{,}15B(n)\\), \\(B(n+1)=B(n)-0{,}05F(n)\\), \\(F(0)=33\\), \\(B(0)=27\\). Berapakah \\(F(10)\\)?", kunci:"F10" },
