@@ -720,30 +720,42 @@ function setupAntiCheat() {
   // Hanya catat pelanggaran jika mahasiswa KELUAR ≥ BATAS_DETIK.
   // Mencegah false positive di HP: screen lock otomatis, sentuhan tidak sengaja,
   // notifikasi sekilas. Keluar < 5 dtk → diabaikan. ≥ 5 dtk → dicatat + peringatan.
-  const BATAS_DETIK = 5;
+  // Pelanggaran berat: ≥4 detik → dicatat sebagai 'tab_switch'
+  // Pelanggaran ringan: <4 detik → dicatat sebagai 'tab_switch_singkat'
+  // SEMUA dicatat dan ditampilkan ke mahasiswa
+  const BATAS_DETIK = 4;
   let _hiddenSince = null;
   let _blurSince   = null;
 
   document.addEventListener('visibilitychange', function () {
     if (examState.submitted) return;
     if (document.hidden) {
-      _hiddenSince = Date.now();         // catat waktu mulai keluar
+      _hiddenSince = Date.now();
     } else {
       if (_hiddenSince !== null) {
         const durasi = Math.round((Date.now() - _hiddenSince) / 1000);
         _hiddenSince = null;
         if (durasi >= BATAS_DETIK) {
+          // BERAT: catat + peringatan keras
           examState.violations.push({
             type: 'tab_switch',
             time: new Date().toISOString(),
             durasi_detik: durasi
           });
           showViolationWarning(
-            'Anda meninggalkan halaman ujian selama ' + durasi +
-            ' detik. Tindakan ini telah dicatat.'
+            '⚠️ DICATAT — Anda meninggalkan halaman ujian selama ' + durasi + ' detik.'
+          );
+        } else if (durasi > 0) {
+          // RINGAN: tetap dicatat tapi ditandai singkat
+          examState.violations.push({
+            type: 'tab_switch_singkat',
+            time: new Date().toISOString(),
+            durasi_detik: durasi
+          });
+          showViolationWarning(
+            'Dicatat (singkat) — Anda meninggalkan halaman ' + durasi + ' detik.'
           );
         }
-        // Di bawah threshold → screen lock sebentar / notif → abaikan
       }
     }
   });
@@ -788,12 +800,19 @@ function dismissViolationWarning() {
 
 // ─── Submit ───────────────────────────────────────────────────────────────────
 function confirmSubmit() {
-  const answered   = Object.keys(examState.answers).length;
-  const total      = examState.soal.length;
-  const unanswered = total - answered;
-  let msg = 'Anda akan mengumpulkan ujian.';
-  if (unanswered > 0) msg += '\nPeringatan: ' + unanswered + ' soal belum dijawab.';
-  msg += '\n\nLanjutkan?';
+  const total = examState.soal.length;
+  const kosongNomor = [];
+  for (var i = 0; i < total; i++) {
+    if (examState.answers[i] === undefined) kosongNomor.push(i + 1);
+  }
+  var msg = 'Anda akan mengumpulkan ujian.';
+  if (kosongNomor.length > 0) {
+    msg += '\n\n⚠️ ' + kosongNomor.length + ' soal BELUM dijawab:\n→ Nomor: ' + kosongNomor.join(', ');
+    msg += '\n\nAnda masih bisa kembali untuk menjawab, atau tetap kumpulkan sekarang.';
+  } else {
+    msg += '\n\n✅ Semua ' + total + ' soal sudah dijawab.';
+  }
+  msg += '\n\nKumpulkan sekarang?';
   if (window.confirm(msg)) submitExam(false);
 }
 
@@ -804,25 +823,27 @@ function submitExam(autoSubmit) {
   if (examState.timerInterval) clearInterval(examState.timerInterval);
 
   let benar = 0;
+  let kosong = 0;
   const details = examState.soal.map(function (s, i) {
     const jawaban = examState.answers[i] !== undefined ? examState.answers[i] : null;
     const correct = (jawaban === s.kunci);
     if (correct) benar++;
+    if (jawaban === null) kosong++;
     return { nomor: i + 1, soal_id: s.id, jawaban: jawaban, kunci: s.kunci, correct: correct };
   });
 
   const total = examState.soal.length;
+  const salah = total - benar - kosong;
   const skor  = total > 0 ? Math.round((benar / total) * 100) : 0;
 
-  showRecap(details, benar, total, skor);
-  sendWebhook(details, benar, total, skor);
+  showRecap(details, benar, salah, kosong, total, skor);
+  sendWebhook(details, benar, salah, kosong, total, skor);
 }
 
 // ─── Rekap ────────────────────────────────────────────────────────────────────
-function showRecap(details, benar, total, skor) {
+function showRecap(details, benar, salah, kosong, total, skor) {
   const st = examState.student;
 
-  // Header: nama, NIM, Offering
   const labelEl = document.getElementById('recap-student-label');
   if (labelEl) labelEl.textContent =
     (st.mk ? st.mk + '  |  ' : '') + st.nama + '  |  NIM: ' + st.nim + '  |  Offering: ' + st.offering;
@@ -831,24 +852,39 @@ function showRecap(details, benar, total, skor) {
   if (skorEl) skorEl.textContent = skor;
 
   const benarEl = document.getElementById('recap-benar-label');
-  if (benarEl) benarEl.textContent = benar + ' dari ' + total + ' soal benar';
+  if (benarEl) benarEl.innerHTML =
+    '✅ Benar: <strong>' + benar + '</strong> &nbsp;|&nbsp; ' +
+    '❌ Salah: <strong>' + salah + '</strong> &nbsp;|&nbsp; ' +
+    '— Kosong: <strong>' + kosong + '</strong> &nbsp;|&nbsp; ' +
+    'Total: <strong>' + total + '</strong> soal';
 
-  const tabViols = examState.violations.filter(function (v) { return v.type === 'tab_switch'; });
-  const violEl   = document.getElementById('recap-violations');
+  // Pelanggaran: berat (≥4dtk) dan ringan (<4dtk)
+  const beratViols  = examState.violations.filter(function (v) { return v.type === 'tab_switch'; });
+  const ringanViols = examState.violations.filter(function (v) { return v.type === 'tab_switch_singkat'; });
+  const violEl = document.getElementById('recap-violations');
   if (violEl) {
-    if (tabViols.length === 0) {
+    if (beratViols.length === 0 && ringanViols.length === 0) {
       violEl.innerHTML = '<div class="alert alert-success py-2 small mb-2">✅ Tidak ada perpindahan tab terdeteksi.</div>';
     } else {
-      const totalDtk = tabViols.reduce(function (s, v) { return s + (v.durasi_detik || 0); }, 0);
-      const detail   = tabViols.map(function (v, i) {
-        return '<span class="badge bg-warning text-dark me-1">#' + (i+1) + ': ' + (v.durasi_detik||'?') + ' dtk</span>';
-      }).join('');
-      violEl.innerHTML =
-        '<div class="alert alert-warning py-2 small mb-1">' +
-        '⚠️ Meninggalkan halaman: <strong>' + tabViols.length + 'x</strong>' +
-        ' — Total durasi: <strong>' + totalDtk + ' detik</strong>' +
-        '</div>' +
-        '<div class="mb-3">' + detail + '</div>';
+      var html = '';
+      if (beratViols.length > 0) {
+        const totalDtk = beratViols.reduce(function (s, v) { return s + (v.durasi_detik||0); }, 0);
+        const badges = beratViols.map(function (v, i) {
+          return '<span class="badge bg-danger me-1">#' + (i+1) + ': ' + (v.durasi_detik||'?') + ' dtk</span>';
+        }).join('');
+        html += '<div class="alert alert-danger py-2 small mb-1">⚠️ Pelanggaran berat (≥4 dtk): <strong>' +
+          beratViols.length + 'x</strong> — total ' + totalDtk + ' dtk</div>' +
+          '<div class="mb-2">' + badges + '</div>';
+      }
+      if (ringanViols.length > 0) {
+        const badges2 = ringanViols.map(function (v, i) {
+          return '<span class="badge bg-warning text-dark me-1">#' + (i+1) + ': ' + (v.durasi_detik||'?') + ' dtk</span>';
+        }).join('');
+        html += '<div class="alert alert-warning py-2 small mb-1">ℹ️ Perpindahan singkat (<4 dtk): <strong>' +
+          ringanViols.length + 'x</strong></div>' +
+          '<div class="mb-2">' + badges2 + '</div>';
+      }
+      violEl.innerHTML = html;
     }
   }
 
@@ -877,7 +913,7 @@ function showRecap(details, benar, total, skor) {
 }
 
 // ─── Webhook ke Google Sheets ─────────────────────────────────────────────────
-async function sendWebhook(details, benar, total, skor) {
+async function sendWebhook(details, benar, salah, kosong, total, skor) {
   // [FIX BUG 3] Hapus referensi LS_PREFIX — variabel itu hanya ada di admin.html,
   //             tidak di ujian.html. URL webhook HARUS ter-embed di dalam link
   //             (field 'w' pada config) saat admin generate link.
@@ -893,24 +929,36 @@ async function sendWebhook(details, benar, total, skor) {
 
   const st = examState.student;
   const selesai = Date.now();
+  const pelBeratList  = examState.violations.filter(function(v){ return v.type === 'tab_switch'; });
+  const pelRinganList = examState.violations.filter(function(v){ return v.type === 'tab_switch_singkat'; });
   const payload = {
-    waktu_mulai:   new Date(examState.startTime).toISOString(),
-    waktu_selesai: new Date(selesai).toISOString(),
-    durasi_menit:  Math.round((selesai - examState.startTime) / 60000),
-    exam_id:      examState.config.id || '',
-    subbab:       examState.config.sb,
-    question_ids: examState.soal.map(function (s) { return s.id; }),
-    mk:           st.mk || '',
-    nama:         st.nama,
-    nim:          st.nim,
-    offering:     st.offering,
-    email:        st.email,
-    wa:           st.wa,
-    n_soal:       total,
-    benar:        benar,
-    score:        skor,
-    answers:      details,
-    violations:   examState.violations
+    waktu_mulai:    new Date(examState.startTime).toISOString(),
+    waktu_selesai:  new Date(selesai).toISOString(),
+    durasi_hms: (function() {
+      var s = Math.round((selesai - examState.startTime) / 1000);
+      var h = Math.floor(s / 3600);
+      var m = Math.floor((s % 3600) / 60);
+      var ss = s % 60;
+      return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0') + ':' + String(ss).padStart(2,'0');
+    })(),
+    exam_id:        examState.config.id || '',
+    subbab:         examState.config.sb,
+    question_ids:   examState.soal.map(function (s) { return s.id; }),
+    mk:             st.mk || '',
+    nama:           st.nama,
+    nim:            st.nim,
+    offering:       st.offering,
+    email:          st.email,
+    wa:             st.wa,
+    n_soal:         total,
+    benar:          benar,
+    salah:          salah,
+    kosong:         kosong,
+    score:          skor,
+    pel_berat:      pelBeratList.length,
+    pel_ringan:     pelRinganList.length,
+    answers:        details,
+    violations:     examState.violations
   };
 
   try {
