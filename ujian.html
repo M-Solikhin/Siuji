@@ -502,16 +502,19 @@ function hapusSesi() {
   var key = _sesiKey();
   if (key) try { localStorage.removeItem(key); } catch(e) {}
 }
-// Tandai ujian sudah dikerjakan — cegah pengulangan dengan link+NIM sama
+// Tandai ujian sudah dikerjakan — kunci = examId + NIM + MK
+// (NIM yang sama bisa mengerjakan ujian MK berbeda tanpa diblokir)
+function _doneKey(nim, mk) {
+  var id = examState.config ? (examState.config.id || examState.config.ts) : 'x';
+  return 'ujian_selesai_' + id + '|' + (nim||'') + '|' + (mk||'');
+}
 function _markDone() {
   if (!examState.config || !examState.student) return;
-  var key = 'ujian_selesai_' + (examState.config.id || examState.config.ts) + '|' + examState.student.nim;
-  try { localStorage.setItem(key, Date.now().toString()); } catch(e) {}
+  try { localStorage.setItem(_doneKey(examState.student.nim, examState.student.mk), Date.now().toString()); } catch(e) {}
 }
-function _sudahSelesai(nim) {
+function _sudahSelesai(nim, mk) {
   if (!examState.config) return false;
-  var key = 'ujian_selesai_' + (examState.config.id || examState.config.ts) + '|' + nim;
-  try { return !!localStorage.getItem(key); } catch(e) { return false; }
+  try { return !!localStorage.getItem(_doneKey(nim, mk)); } catch(e) { return false; }
 }
 function muatSesi() {
   var key = _sesiKey();
@@ -612,9 +615,10 @@ function startExam() {
 
   examState.student    = { nama, nim, mk, offering, email, wa };
 
-  // [Fitur 1] Cegah pengerjaan ulang: cek apakah NIM+link ini sudah pernah dikumpulkan
-  if (_sudahSelesai(nim)) {
-    errEl.textContent = '⛔ NIM ' + nim + ' sudah mengumpulkan ujian ini sebelumnya. ' +
+  // [Fitur 1] Cegah pengerjaan ulang: kunci = NIM + MK + examId
+  // Mahasiswa dengan NIM sama tetap bisa mengerjakan MK yang berbeda
+  if (_sudahSelesai(nim, mk)) {
+    errEl.textContent = '⛔ NIM ' + nim + ' (' + mk + ') sudah mengumpulkan ujian ini sebelumnya. ' +
       'Jika ada kendala teknis, hubungi dosen untuk mendapatkan link ujian baru.';
     errEl.style.display = 'block';
     examState.student = null;
