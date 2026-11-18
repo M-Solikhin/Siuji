@@ -384,6 +384,83 @@ const SOAL_BANK = {
   ]
 };
 
+// ═══════════════════════════════════════════════════════════════════════
+// SUB-BAB 15.2 — INTEGRAL GANDA PADA DAERAH UMUM
+// Pool terpisah dari 15.1 (tidak dicampur)
+// 24 soal: 15 numerik + 5 ekspresi (irisan horizontal) + 4 balik urutan
+// Semua jawaban divalidasi sympy ✅
+// ═══════════════════════════════════════════════════════════════════════
+
+// ── Answer Pool 15.2 (15 nilai numerik, tervalidasi sympy) ───────────────
+const ANSWER_POOL_152 = [
+  { key: "pi/4-ln2/2",  latex: "\\dfrac{\\pi}{4}-\\dfrac{\\ln 2}{2}" },
+  { key: "ln3-2/3",     latex: "\\ln 3-\\dfrac{2}{3}" },
+  { key: "e-1",         latex: "e-1" },
+  { key: "3/2",         latex: "\\dfrac{3}{2}" },
+  { key: "9/2",         latex: "\\dfrac{9}{2}" },
+  { key: "pi^2/2+2",    latex: "\\dfrac{\\pi^2}{2}+2" },
+  { key: "pi/4",        latex: "\\dfrac{\\pi}{4}" },
+  { key: "8ln8-16+e",   latex: "8\\ln 8-16+e" },
+  { key: "5/6",         latex: "\\dfrac{5}{6}" },
+  { key: "e-2",         latex: "e-2" },
+  { key: "8(e-1)",      latex: "8(e-1)" },
+  { key: "3ln2/2",      latex: "\\dfrac{3\\ln 2}{2}" },
+  { key: "1/6",         latex: "\\dfrac{1}{6}" },
+  { key: "-1/10",       latex: "-\\dfrac{1}{10}" },
+  { key: "1/4",         latex: "\\dfrac{1}{4}" }
+];
+
+// ── Pool Grup A — Integral iterasi irisan horizontal (No.9-13) ──────────
+const INTEGRAL_POOL_152_A = [
+  { key:"intA1", latex:"\\displaystyle\\int_{0}^{8}\\int_{0}^{\\sqrt[3]{y}}\\!dx\\,dy" },
+  { key:"intA2", latex:"\\displaystyle\\int_{0}^{6}\\int_{y/2}^{3}\\!dx\\,dy" },
+  { key:"intA3", latex:"\\displaystyle\\int_{0}^{9}\\int_{y/3}^{\\sqrt{y}}\\!dx\\,dy" },
+  { key:"intA4", latex:"\\displaystyle\\int_{1}^{e^2}\\int_{\\ln y}^{2}\\!dx\\,dy" },
+  { key:"intA5", latex:"\\displaystyle\\int_{0}^{3}\\int_{y^2}^{9}\\!dx\\,dy" }
+];
+
+// ── Pool Grup B — Integral urutan dibalik (No.33-36) ───────────────────
+const INTEGRAL_POOL_152_B = [
+  { key:"intB1", latex:"\\displaystyle\\int_{2}^{4}\\int_{0}^{(4-y)/2}\\!dx\\,dy" },
+  { key:"intB2", latex:"\\displaystyle\\int_{-2}^{0}\\int_{0}^{x+2}\\!dy\\,dx" },
+  { key:"intB3", latex:"\\displaystyle\\int_{0}^{1}\\int_{x^{2}}^{x}\\!dy\\,dx" },
+  { key:"intB4", latex:"\\displaystyle\\int_{0}^{1}\\int_{1-y}^{\\sqrt{1-y}}\\!dx\\,dy" },
+  { key:"intB5", latex:"\\displaystyle\\int_{0}^{4}\\int_{x/2}^{x}\\!dy\\,dx" }
+];
+
+// ── Lookup tabel pool per sub-bab ───────────────────────────────────────
+const POOLS = { '15.1': ANSWER_POOL, '15.2': ANSWER_POOL_152 };
+SOAL_BANK['15.2'] = [
+  // ── Luas daerah via integral ganda (No.14-18) ───────────────────────────
+  { id:1,  q:"Hitung luas daerah \\(R\\) yang dibatasi oleh \\(y=\\tan x\\), \\(x=0\\), dan \\(y=1\\).", kunci:"pi/4-ln2/2" },
+  { id:2,  q:"Hitung luas daerah \\(R\\) yang dibatasi oleh \\(y=e^{-x}\\), \\(y=1\\), dan \\(x=\\ln 3\\).", kunci:"ln3-2/3" },
+  { id:3,  q:"Hitung luas daerah \\(R\\) yang dibatasi oleh \\(x=0\\), \\(y=0\\), \\(y=1\\), dan kurva \\(y=\\ln x\\).", kunci:"e-1" },
+  { id:4,  q:"Hitung luas daerah \\(R\\) yang dibatasi oleh \\(y=3-2x\\), \\(y=x\\), dan \\(x=0\\).", kunci:"3/2" },
+  { id:5,  q:"Hitung luas daerah \\(R\\) yang dibatasi oleh \\(y=x^2\\) dan \\(y=x+2\\).", kunci:"9/2" },
+  // ── Hitung integral ganda atas daerah umum (No.19-28) ───────────────────
+  { id:6,  q:"Hitunglah \\(\\displaystyle\\int_{0}^{\\pi}\\int_{0}^{x}x\\sin y\\,dy\\,dx\\).", kunci:"pi^2/2+2" },
+  { id:7,  q:"Hitunglah \\(\\displaystyle\\int_{0}^{\\pi}\\int_{0}^{\\sin x}y\\,dy\\,dx\\).", kunci:"pi/4" },
+  { id:8,  q:"Hitunglah \\(\\displaystyle\\int_{1}^{\\ln 8}\\int_{0}^{\\ln y}e^{x+y}\\,dx\\,dy\\).", kunci:"8ln8-16+e" },
+  { id:9,  q:"Hitunglah \\(\\displaystyle\\int_{1}^{2}\\int_{y}^{y^2}dx\\,dy\\).", kunci:"5/6" },
+  { id:10, q:"Hitunglah \\(\\displaystyle\\int_{0}^{1}\\int_{0}^{y^2}3y^3 e^{xy}\\,dx\\,dy\\).", kunci:"e-2" },
+  { id:11, q:"Hitunglah \\(\\displaystyle\\int_{0}^{4}\\int_{0}^{\\sqrt{x}}\\dfrac{3}{2}\\,e^{y/\\sqrt{x}}\\,dy\\,dx\\).", kunci:"8(e-1)" },
+  { id:12, q:"Hitunglah \\(\\displaystyle\\iint_R \\dfrac{x}{y}\\,dA\\), dengan \\(R=\\{(x,y):\\;1\\le x\\le 2,\\;x\\le y\\le 2x\\}\\).", kunci:"3ln2/2" },
+  { id:13, q:"Hitunglah \\(\\displaystyle\\iint_R (x^2+y^2)\\,dA\\), dengan \\(R\\) adalah segitiga berstitik sudut \\((0,0)\\), \\((1,0)\\), dan \\((0,1)\\).", kunci:"1/6" },
+  { id:14, q:"Hitunglah \\(\\displaystyle\\iint_R (v-\\sqrt{u})\\,dA\\), dengan \\(R\\) adalah segitiga di kuadran pertama yang dibatasi oleh \\(u+v=1\\), \\(u=0\\), dan \\(v=0\\).", kunci:"-1/10" },
+  { id:15, q:"Hitunglah \\(\\displaystyle\\iint_R e^s\\ln t\\,dA\\), dengan \\(R=\\{(s,t):\\;1\\le t\\le 2,\\;0\\le s\\le\\ln t\\}\\).", kunci:"1/4" },
+  // ── Tulislah integral iterasi — irisan horizontal (No.9-13) ─────────────
+  { id:16, q:"Manakah bentuk integral iterasi dengan <strong>irisan horizontal</strong> untuk \\(\\iint_R dA\\), dengan \\(R\\) dibatasi oleh \\(y=x^3\\), \\(y=8\\), dan \\(x=0\\)?", kunci:"intA1", fixedOptions:INTEGRAL_POOL_152_A },
+  { id:17, q:"Manakah bentuk integral iterasi dengan <strong>irisan horizontal</strong> untuk \\(\\iint_R dA\\), dengan \\(R\\) dibatasi oleh \\(y=2x\\), \\(x=3\\), dan \\(y=0\\)?", kunci:"intA2", fixedOptions:INTEGRAL_POOL_152_A },
+  { id:18, q:"Manakah bentuk integral iterasi dengan <strong>irisan horizontal</strong> untuk \\(\\iint_R dA\\), dengan \\(R\\) dibatasi oleh \\(y=3x\\) dan \\(y=x^2\\)?", kunci:"intA3", fixedOptions:INTEGRAL_POOL_152_A },
+  { id:19, q:"Manakah bentuk integral iterasi dengan <strong>irisan horizontal</strong> untuk \\(\\iint_R dA\\), dengan \\(R\\) dibatasi oleh \\(y=e^x\\), \\(y=1\\), dan \\(x=2\\)?", kunci:"intA4", fixedOptions:INTEGRAL_POOL_152_A },
+  { id:20, q:"Manakah bentuk integral iterasi dengan <strong>irisan horizontal</strong> untuk \\(\\iint_R dA\\), dengan \\(R\\) dibatasi oleh \\(y=\\sqrt{x}\\), \\(y=0\\), dan \\(x=9\\)?", kunci:"intA5", fixedOptions:INTEGRAL_POOL_152_A },
+  // ── Balik urutan integrasi (No.33-36) ────────────────────────────────────
+  { id:21, q:"Integral \\(\\displaystyle\\int_{0}^{1}\\int_{2}^{4-2x}dy\\,dx\\) dengan urutan integrasi dibalik menjadi...", kunci:"intB1", fixedOptions:INTEGRAL_POOL_152_B },
+  { id:22, q:"Integral \\(\\displaystyle\\int_{0}^{2}\\int_{y-2}^{0}dx\\,dy\\) dengan urutan integrasi dibalik menjadi...", kunci:"intB2", fixedOptions:INTEGRAL_POOL_152_B },
+  { id:23, q:"Integral \\(\\displaystyle\\int_{0}^{1}\\int_{y}^{\\sqrt{y}}dx\\,dy\\) dengan urutan integrasi dibalik menjadi...", kunci:"intB3", fixedOptions:INTEGRAL_POOL_152_B },
+  { id:24, q:"Integral \\(\\displaystyle\\int_{0}^{1}\\int_{1-x}^{1-x^2}dy\\,dx\\) dengan urutan integrasi dibalik menjadi...", kunci:"intB4", fixedOptions:INTEGRAL_POOL_152_B }
+];
+
 // ─── Mulberry32 PRNG ──────────────────────────────────────────────────────────
 function nimSeed(str) {
   let h = 2166136261 >>> 0;
@@ -462,6 +539,15 @@ function getLatexForKey(soalObj, key) {
   }
   const entry = ANSWER_POOL.find(a => a.key === key);
   return entry ? entry.latex : key;
+}
+
+// ─── Helper: label sub-bab (single atau multi-bank) ──────────────────────────
+function _sbLabel(cfg) {
+  if (!cfg) return '-';
+  if (cfg.sbs && cfg.sbs.length > 0) {
+    return cfg.sbs.map(function(pc) { return pc.sb; }).join(' & ');
+  }
+  return cfg.sb || '-';
 }
 
 // ─── Toggle password visibility ───────────────────────────────────────────────
@@ -543,7 +629,7 @@ function updateStudentBar() {
 
   const sep = '<span class="bar-sep"> | </span>';
   let html =
-    '<span><span class="bar-lbl">Sub-bab:</span><span class="bar-val">' + (cfg.sb||'-') + '</span></span>' + sep +
+    '<span><span class="bar-lbl">Sub-bab:</span><span class="bar-val">' + _sbLabel(cfg) + '</span></span>' + sep +
     (cfg.j ? '<span><span class="bar-lbl">Jenis:</span><span class="bar-val">' + cfg.j + '</span></span>' + sep : '')+
     '<span><span class="bar-lbl">Link:</span><span class="bar-val">' + idSuffix + '</span></span>' + sep +
     '<span><span class="bar-lbl">Dibuat:</span><span class="bar-val">' + created + '</span></span>';
@@ -631,33 +717,43 @@ function startExam() {
   examState.violations = [];
   examState.submitted  = false;
 
-  // ── Acak soal: seed = NIM + examId (berbeda tiap link) ──────────────────────
-  // [FIX BUG 1] examSeed dari UUID unik per-link memastikan soal berbeda
-  //             tiap kali admin generate link baru.
-  const pool     = SOAL_BANK[examState.config.sb] || [];
-  const examSeed = String(examState.config.id || examState.config.ts || 'legacy');
-  const rng      = seededRandom(nimSeed(nim + '|' + examSeed));
-  const n        = Math.min(Number(examState.config.n), pool.length);
-  const selectedSoal = shuffle(pool, rng).slice(0, n);
+  // ── Normalisasi config → poolConfigs (single-bank dan multi-bank) ───────────
+  const examSeed   = String(examState.config.id || examState.config.ts || 'legacy');
+  const poolConfigs = (examState.config.sbs && examState.config.sbs.length > 0)
+    ? examState.config.sbs
+    : [{ sb: examState.config.sb, n: examState.config.n }];
+
+  // ── Pilih soal per sub-bab (dikelompokkan; tiap kelompok diacak sendiri) ─────
+  var allSelectedSoal = [];
+  poolConfigs.forEach(function(pc) {
+    const sbPool = SOAL_BANK[pc.sb] || [];
+    const rngSb  = seededRandom(nimSeed(nim + '|' + examSeed + '|sb|' + pc.sb));
+    const nSb    = Math.min(Number(pc.n), sbPool.length);
+    const picked = shuffle(sbPool, rngSb).slice(0, nSb).map(function(s) {
+      return Object.assign({}, s, { _sb: pc.sb });   // tag sub-bab asal
+    });
+    allSelectedSoal = allSelectedSoal.concat(picked);
+  });
 
   // ── Bangun opsi per soal ──────────────────────────────────────────────────────
-  // [FIX BUG 1] Sertakan examSeed dalam seed opsi agar opsi juga bervariasi per link
-  examState.soal = selectedSoal.map(function (s) {
-    const rngOpt = seededRandom(nimSeed(nim + '|' + examSeed + '|' + String(s.id)));
+  examState.soal = allSelectedSoal.map(function (s) {
+    // Seed menyertakan sub-bab agar soal id yang sama di bab berbeda tidak bentrok
+    const rngOpt = seededRandom(nimSeed(nim + '|' + examSeed + '|' + (s._sb||'') + '|' + String(s.id)));
     if (s.fixedOptions) {
       return Object.assign({}, s, { options: shuffle(s.fixedOptions, rngOpt) });
     }
-    const correctEntry = ANSWER_POOL.find(a => a.key === s.kunci);
+    // Gunakan pool khusus sub-bab jika tersedia
+    const _qPool = (s._sb && POOLS[s._sb]) ? POOLS[s._sb] : ANSWER_POOL;
+    const correctEntry = _qPool.find(a => a.key === s.kunci);
     const seenKeys = new Set([s.kunci]);
-    const uniqueDistractors = ANSWER_POOL.filter(function (a) {
+    const uniqueDistractors = _qPool.filter(function (a) {
       if (seenKeys.has(a.key)) return false;
       seenKeys.add(a.key);
       return true;
     });
     const distractors = shuffle(uniqueDistractors, rngOpt).slice(0, 4);
     const opts = [correctEntry].concat(distractors);
-    // [FIX BUG 1] seed shuffle opsi juga sertakan examSeed
-    const rngShuffle = seededRandom(nimSeed(nim + '|' + examSeed + '|opt|' + String(s.id)));
+    const rngShuffle = seededRandom(nimSeed(nim + '|' + examSeed + '|opt|' + (s._sb||'') + '|' + String(s.id)));
     return Object.assign({}, s, { options: shuffle(opts, rngShuffle) });
   });
 
@@ -691,7 +787,7 @@ function startExam() {
   // ── Update tampilan header ujian: nama, NIM, Offering ────────────────────────
   const jenisUjian = examState.config.j || '';
   document.getElementById('exam-title').textContent =
-    (jenisUjian ? jenisUjian + ' — ' : '') + 'Sub-bab ' + examState.config.sb;
+    (jenisUjian ? jenisUjian + ' — ' : '') + 'Sub-bab ' + _sbLabel(examState.config);
   document.getElementById('exam-student-info').textContent =
     mk + '  |  ' + nama + '  |  NIM: ' + nim + '  |  Offering: ' + offering;
 
@@ -742,8 +838,16 @@ function renderSoal(idx) {
       '</label>';
   }).join('');
 
+  // Label sub-bab: tampil jika ujian multi-bank
+  const isMulti   = examState.config.sbs && examState.config.sbs.length > 1;
+  const sbBadge   = (isMulti && s._sb)
+    ? '<div class="d-inline-block bg-primary text-white rounded px-2 py-0 small mb-2" ' +
+      'style="font-size:0.75rem">📚 Sub-bab ' + s._sb + '</div>'
+    : '';
+
   container.innerHTML =
     '<div class="soal-card">' +
+      sbBadge +
       '<div class="soal-nomor">Soal <strong>' + (idx + 1) + '</strong> dari ' + total + '</div>' +
       '<div class="soal-teks">' + s.q + '</div>' +
       '<div class="opsi-list">' + optHtml + '</div>' +
@@ -1056,7 +1160,7 @@ async function sendWebhook(details, benar, salah, kosong, total, skor) {
       return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0') + ':' + String(ss).padStart(2,'0');
     })(),
     exam_id:        examState.config.id || '',
-    subbab:         examState.config.sb,
+    subbab:         _sbLabel(examState.config),
     question_ids:   examState.soal.map(function (s) { return s.id; }),
     jenis_ujian:    examState.config.j || '',
     mk:             st.mk || '',
@@ -1095,7 +1199,14 @@ async function sendWebhook(details, benar, salah, kosong, total, skor) {
 // ─── Inisialisasi ─────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function () {
   const cfg = parseConfig();
-  if (!cfg || !cfg.sb || !SOAL_BANK[cfg.sb]) {
+  // Validasi config: support single-bank (sb) dan multi-bank (sbs)
+  var _hasSoal;
+  if (cfg && cfg.sbs && cfg.sbs.length > 0) {
+    _hasSoal = cfg.sbs.every(function(pc) { return !!SOAL_BANK[pc.sb]; });
+  } else {
+    _hasSoal = !!(cfg && cfg.sb && SOAL_BANK[cfg.sb]);
+  }
+  if (!cfg || !_hasSoal) {
     const errEl = document.getElementById('error-msg');
     if (errEl) errEl.textContent =
       'Link ujian tidak valid atau sub-bab tidak ditemukan. ' +
