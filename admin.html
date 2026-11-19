@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Panel — Aplikasi Ujian Departemen Matematika</title>
@@ -132,14 +133,24 @@
           <div class="form-text">Dibagikan ke mahasiswa sebelum ujian</div>
         </div>
         <div class="col-sm-6">
-          <label class="form-label small fw-semibold">⏰ Waktu Mulai Link <span class="text-muted fw-normal">(opsional)</span></label>
-          <input type="datetime-local" id="g-start" class="form-control form-control-sm">
-          <div class="form-text">Kosongkan = langsung aktif saat dibagikan</div>
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <input class="form-check-input mt-0" type="checkbox" id="use-start"
+              onchange="toggleTimeField('start')" style="cursor:pointer">
+            <label class="form-label small fw-semibold mb-0" for="use-start"
+              style="cursor:pointer">⏰ Aktifkan Waktu Mulai</label>
+          </div>
+          <input type="datetime-local" id="g-start" class="form-control form-control-sm" disabled>
+          <div class="form-text">Tidak dicentang = link langsung aktif saat dibagikan</div>
         </div>
         <div class="col-sm-6">
-          <label class="form-label small fw-semibold">⛔ Waktu Berakhir Link <span class="text-muted fw-normal">(opsional)</span></label>
-          <input type="datetime-local" id="g-exp" class="form-control form-control-sm">
-          <div class="form-text">Kosongkan = tidak ada batas waktu</div>
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <input class="form-check-input mt-0" type="checkbox" id="use-exp"
+              onchange="toggleTimeField('exp')" style="cursor:pointer">
+            <label class="form-label small fw-semibold mb-0" for="use-exp"
+              style="cursor:pointer">⛔ Aktifkan Waktu Berakhir</label>
+          </div>
+          <input type="datetime-local" id="g-exp" class="form-control form-control-sm" disabled>
+          <div class="form-text">Tidak dicentang = tidak ada batas waktu berakhir</div>
         </div>
       </div>
     </div>
@@ -183,13 +194,31 @@
         ✅ Link Ujian Berhasil Dibuat
       </div>
       <div class="card-body">
-        <p class="fw-semibold mb-2">Bagikan link berikut ke mahasiswa:</p>
-        <div id="generatedLinkText" class="link-box mb-3"></div>
-        <div class="d-flex flex-wrap gap-2 mb-3">
-          <button class="btn btn-success" onclick="copyLink()">📋 Salin Link</button>
-          <button class="btn btn-primary" onclick="openLink()">🔗 Buka Ujian</button>
+        <div class="row g-3 align-items-start">
+          <!-- QR Code -->
+          <div class="col-auto text-center" id="qrSection" style="display:none">
+            <a id="qrLink" href="#" target="_blank" title="Klik untuk buka link ujian">
+              <canvas id="qrCanvas" style="border-radius:8px;cursor:pointer;border:1px solid #e0e0e0;"></canvas>
+            </a>
+            <div class="mt-2 d-flex flex-column gap-1 align-items-center">
+              <button class="btn btn-sm btn-outline-secondary w-100" onclick="copyQRImage()">📋 Salin Gambar QR</button>
+              <button class="btn btn-sm btn-outline-secondary w-100" onclick="downloadQR()">⬇️ Unduh QR</button>
+              <div class="form-text text-center" style="font-size:0.68rem">
+                Paste gambar ke WA Web/PC · <br>HP: Unduh → share ke grup
+              </div>
+            </div>
+          </div>
+          <!-- Link text -->
+          <div class="col">
+            <p class="fw-semibold mb-2">Bagikan link atau scan QR ke mahasiswa:</p>
+            <div id="generatedLinkText" class="link-box mb-3"></div>
+            <div class="d-flex flex-wrap gap-2 mb-3">
+              <button class="btn btn-success" onclick="copyLink()">📋 Salin Link</button>
+              <button class="btn btn-primary" onclick="openLink()">🔗 Buka Ujian</button>
+            </div>
+            <div class="text-muted small" id="linkMeta"></div>
+          </div>
         </div>
-        <div class="text-muted small" id="linkMeta"></div>
       </div>
     </div>
   </div>
@@ -636,6 +665,16 @@ async function generateLinkUjian() {
     sb:  sbsArr.length === 1 ? sbsArr[0].sb : null,
     sbs: sbsArr.length >  1 ? sbsArr        : null,
     n: totalN, d: dur, ts: Date.now(), url: link, blocked: false });
+  // ── Generate QR code ──
+  const _fmtSbQR = sb => sb && sb.startsWith('PBM.') ? 'Pemodelan ' + sb.slice(4) : sb;
+  const qrLabel = [
+    jenisLabel,
+    mk,
+    'Sub-bab: ' + sbsArr.map(s => _fmtSbQR(s.sb)).join(', '),
+    totalN + ' soal · ' + (dur > 0 ? dur + ' mnt' : 'tanpa batas')
+  ].join('\n');
+  window._qrFilename = 'qr-' + jenisLabel.toLowerCase().replace(/[^a-z0-9]+/g,'-');
+  updateQRDisplay(link, qrLabel);
   document.getElementById('linkCard').scrollIntoView({ behavior: 'smooth' });
 }
 
@@ -877,6 +916,151 @@ function loadGhSettingsFromStorage() {
   const re = document.getElementById('gh-repo');
   if (token && te) te.value = token;
   if (repo  && re) re.value = repo;
+}
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  QR CODE GENERATOR
+// ══════════════════════════════════════════════════════════════════════════════
+
+function generateQRCanvas(url, labelText, callback) {
+  // Pastikan library qrcodejs sudah dimuat
+  if (typeof QRCode === 'undefined') {
+    console.warn('[QR] qrcodejs belum dimuat'); return;
+  }
+  const tmpDiv = document.createElement('div');
+  tmpDiv.style.cssText = 'position:absolute;left:-9999px;top:-9999px;';
+  document.body.appendChild(tmpDiv);
+  try {
+    new QRCode(tmpDiv, { text: url, width: 200, height: 200,
+      correctLevel: QRCode.CorrectLevel.M });
+  } catch(e) {
+    document.body.removeChild(tmpDiv);
+    console.error('[QR] Error:', e); return;
+  }
+  setTimeout(() => {
+    const qrCanvas = tmpDiv.querySelector('canvas');
+    if (!qrCanvas) { document.body.removeChild(tmpDiv); return; }
+
+    const lines = labelText.split('\n').filter(Boolean);
+    const lineH = 17, pad = 10, W = 220;
+    const H = 200 + pad + lines.length * lineH + pad;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+
+    // Background putih
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, W, H);
+
+    // QR (centered)
+    ctx.drawImage(qrCanvas, (W - 200) / 2, 0, 200, 200);
+
+    // Garis pemisah
+    ctx.strokeStyle = '#dddddd'; ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(12, 203); ctx.lineTo(W - 12, 203);
+    ctx.stroke();
+
+    // Label teks
+    ctx.textAlign = 'center';
+    lines.forEach((line, i) => {
+      ctx.font = i === 0 ? 'bold 12px Arial,sans-serif' : '11px Arial,sans-serif';
+      ctx.fillStyle = i === 0 ? '#1a1a2e' : '#555555';
+      ctx.fillText(line, W / 2, 200 + pad + (i + 1) * lineH - 2, W - 16);
+    });
+
+    document.body.removeChild(tmpDiv);
+    callback(canvas);
+  }, 150);
+}
+
+function updateQRDisplay(url, label) {
+  generateQRCanvas(url, label, function(canvas) {
+    const display = document.getElementById('qrCanvas');
+    const link    = document.getElementById('qrLink');
+    const section = document.getElementById('qrSection');
+    if (!display || !section) return;
+    display.width  = canvas.width;
+    display.height = canvas.height;
+    display.getContext('2d').drawImage(canvas, 0, 0);
+    if (link) link.href = url;
+    section.style.display = '';
+    window._qrCanvasRef = canvas;
+  });
+}
+
+function copyQRImage() {
+  const canvas = window._qrCanvasRef || document.getElementById('qrCanvas');
+  if (!canvas) { alert('QR belum dibuat.'); return; }
+  canvas.toBlob(blob => {
+    if (!blob) { _fallbackDownloadQR(canvas); return; }
+    if (!navigator.clipboard || !window.ClipboardItem) {
+      _fallbackDownloadQR(canvas); return;
+    }
+    navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
+      .then(() => alert('✅ Gambar QR berhasil disalin!\nSekarang paste ke WhatsApp Web, email, atau dokumen.'))
+      .catch(() => _fallbackDownloadQR(canvas));
+  }, 'image/png');
+}
+
+function downloadQR() {
+  const canvas = window._qrCanvasRef || document.getElementById('qrCanvas');
+  if (!canvas) return;
+  const fname = (window._qrFilename || 'qr-ujian') + '.png';
+  const a = document.createElement('a');
+  a.href = canvas.toDataURL('image/png');
+  a.download = fname;
+  a.click();
+}
+
+function _fallbackDownloadQR(canvas) {
+  if (confirm('Browser ini tidak mendukung copy gambar langsung.\nMau unduh gambar QR sebagai file PNG?')) {
+    downloadQR();
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  TOGGLE WAKTU MULAI / BERAKHIR
+// ══════════════════════════════════════════════════════════════════════════════
+
+function _toLocalISO(date) {
+  const p = n => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${p(date.getMonth()+1)}-${p(date.getDate())}T${p(date.getHours())}:${p(date.getMinutes())}`;
+}
+
+function toggleTimeField(which) {
+  const cbId    = which === 'start' ? 'use-start' : 'use-exp';
+  const inputId = which === 'start' ? 'g-start'   : 'g-exp';
+  const cb    = document.getElementById(cbId);
+  const input = document.getElementById(inputId);
+  if (!cb || !input) return;
+
+  if (cb.checked) {
+    input.disabled = false;
+    if (!input.value) {
+      const now   = new Date();
+      if (which === 'start') {
+        input.value = _toLocalISO(now);
+        // Update exp default = start + 3 jam (jika exp belum diisi)
+        const expCb  = document.getElementById('use-exp');
+        const expEl  = document.getElementById('g-exp');
+        if (expCb && expCb.checked && expEl && !expEl.value) {
+          expEl.value = _toLocalISO(new Date(now.getTime() + 3 * 3600000));
+        }
+      } else {
+        // exp: gunakan nilai start (jika ada) + 3 jam, atau now + 3 jam
+        const startEl = document.getElementById('g-start');
+        const base    = startEl && startEl.value ? new Date(startEl.value) : now;
+        input.value   = _toLocalISO(new Date(base.getTime() + 3 * 3600000));
+      }
+    }
+  } else {
+    input.disabled = true;
+    input.value    = '';
+  }
+  saveGlobalConfig();
 }
 
 </script>
