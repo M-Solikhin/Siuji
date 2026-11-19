@@ -1405,7 +1405,7 @@ async function checkPassword() {
 
 // ─── Screen: Identitas & Inisialisasi Ujian ───────────────────────────────────
 
-// ─── Header mahasiswa: MK · Jenis · Sub-bab · Tanggal + Jam Realtime ────────
+// ─── Header mahasiswa: MK · Jenis · Sub-bab · Soal · Durasi · Tanggal + Jam ──
 function updateExamHeaders(cfg) {
   if (!cfg) return;
   var sbStr  = _sbLabel(cfg);
@@ -1415,15 +1415,25 @@ function updateExamHeaders(cfg) {
   var hariTgl = today.toLocaleDateString('id-ID', {
     weekday:'long', day:'numeric', month:'long', year:'numeric'
   });
+  // Hitung total soal dan durasi dari config
+  var totalN = 0;
+  if (cfg.sbs && cfg.sbs.length > 0) {
+    totalN = cfg.sbs.reduce(function(a, b) { return a + (b.n || 0); }, 0);
+  } else {
+    totalN = cfg.n || 0;
+  }
+  var durStr = cfg.d > 0 ? cfg.d + ' menit' : 'tanpa batas';
 
   function _buildHTML() {
     var t = new Date().toLocaleTimeString('id-ID',
       {hour:'2-digit', minute:'2-digit', second:'2-digit'});
     return '<span style="font-weight:700">' + jenis + '</span>' +
       (mk ? ' &nbsp;·&nbsp; ' + mk : '') +
-      '<br><span style="opacity:.85">' + sbStr + '</span>' +
-      ' &nbsp;|&nbsp; ' + hariTgl +
-      ' &nbsp;|&nbsp; 🕐 <span class="realtime-clock">' + t + '</span>';
+      '<br><span style="opacity:.9">' + sbStr + '</span>' +
+      (totalN ? ' &nbsp;•&nbsp; <strong>' + totalN + ' soal</strong>' : '') +
+      (durStr ? ' &nbsp;•&nbsp; ' + durStr : '') +
+      '<br><span style="opacity:.8;font-size:0.78rem">' + hariTgl +
+      ' &nbsp;|&nbsp; 🕐 <span class="realtime-clock">' + t + '</span></span>';
   }
 
   ['pwd-subbab-label','id-subbab-label'].forEach(function(id) {
@@ -1611,8 +1621,14 @@ async function startExam() {
   const jenisUjian = examState.config.j || '';
   document.getElementById('exam-title').textContent =
     (jenisUjian ? jenisUjian + ' — ' : '') + 'Sub-bab ' + _sbLabel(examState.config);
+  var _ecfgSI = examState.config;
+  var _totalNSI = 0;
+  if (_ecfgSI && _ecfgSI.sbs) _totalNSI = _ecfgSI.sbs.reduce(function(a,b){return a+(b.n||0);},0);
+  else if (_ecfgSI) _totalNSI = _ecfgSI.n || 0;
+  var _durSI = (_ecfgSI && _ecfgSI.d > 0) ? _ecfgSI.d + ' mnt' : 'tanpa batas';
   document.getElementById('exam-student-info').textContent =
-    mk + '  |  ' + nama + '  |  NIM: ' + nim + '  |  Offering: ' + offering;
+    mk + '  |  ' + nama + '  |  NIM: ' + nim + '  |  Offering: ' + offering +
+    (_totalNSI ? '  |  ' + _totalNSI + ' soal · ' + _durSI : '');
 
   // Update identity bar dengan data mahasiswa
   updateStudentBar();
