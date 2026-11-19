@@ -250,7 +250,7 @@ MathJax = {
     <div id="recap-violations" class="mb-3"></div>
     <div class="table-responsive">
       <table class="table table-bordered recap-table" id="recap-table">
-        <thead>
+        <thead id="recap-thead">
           <tr>
             <th style="width:40px">No</th>
             <th>Soal</th>
@@ -1188,7 +1188,8 @@ const examState = {
   startTime:     null,
   timerInterval: null,
   violations:    [],
-  submitted:     false   // [FIX BUG 2] flag: ujian sudah dikumpulkan
+  submitted:     false,  // [FIX BUG 2] flag: ujian sudah dikumpulkan
+  phase:         'identity'  // 'identity' | 'exam' | 'done'
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -1506,6 +1507,7 @@ function startExam() {
   // Update identity bar dengan data mahasiswa
   updateStudentBar();
 
+  examState.phase = 'exam';
   showScreen('screen-exam');
   renderNav();
   renderSoal(examState.current);   // mulai dari soal terakhir (0 jika baru)
@@ -1624,10 +1626,26 @@ function setupAntiCheat() {
 
   document.addEventListener('keydown', function (e) {
     const k = e.key ? e.key.toUpperCase() : '';
+    // Blokir DevTools
     if (e.key === 'F12' ||
         (e.ctrlKey && e.shiftKey && (k === 'I' || k === 'J' || k === 'C')) ||
         (e.ctrlKey && k === 'U')) {
       e.preventDefault();
+    }
+    // ── Deteksi upaya tangkapan layar ──────────────────────────────────────────
+    if (!examState.submitted && examState.phase === 'exam') {
+      var ssKey = '';
+      if (e.key === 'PrintScreen')   ssKey = 'PrintScreen';
+      else if (e.ctrlKey && k === 'P') ssKey = 'Ctrl+P';
+      if (ssKey) {
+        e.preventDefault();
+        examState.violations.push({
+          type: 'screenshot_attempt',
+          time: new Date().toISOString(),
+          key:  ssKey
+        });
+        showViolationWarning('📸 Dicatat — upaya tangkapan layar terdeteksi.');
+      }
     }
   }, true);
 
@@ -1732,6 +1750,7 @@ function confirmSubmit() {
 }
 
 function submitExam(autoSubmit) {
+  examState.phase       = 'done';
   examState.submitted   = true;
   examState.autoSubmit  = !!autoSubmit;
   hapusSesi();   // hapus sesi tersimpan — ujian sudah selesai
@@ -1820,26 +1839,61 @@ function showRecap(details, benar, salah, kosong, total, skor) {
     }
   }
 
+  // ── Mode rekap: tampilkan jawaban lengkap hanya jika cfg.sk === true ──────────
+  const showKeys = !!(examState.config && examState.config.sk === true);
+  const theadEl  = document.getElementById('recap-thead');
+  if (theadEl) {
+    if (showKeys) {
+      theadEl.innerHTML =
+        '<tr>' +
+        '<th style="width:40px">No</th>' +
+        '<th>Soal</th>' +
+        '<th>Jawaban Anda</th>' +
+        '<th>Jawaban Benar</th>' +
+        '<th style="width:40px">\u2713\u2717</th>' +
+        '</tr>';
+    } else {
+      theadEl.innerHTML =
+        '<tr>' +
+        '<th style="width:50px" class="text-center">No</th>' +
+        '<th style="width:70px" class="text-center">Status</th>' +
+        '</tr>';
+    }
+  }
+
   const tbody = document.getElementById('recap-tbody');
   if (tbody) {
-    tbody.innerHTML = details.map(function (d, i) {
-      const soalObj    = examState.soal[i];
-      const jawabHtml = getHtmlForKey(soalObj, d.jawaban);
-      const kunciHtml = getHtmlForKey(soalObj, d.kunci);
-      const rowClass  = d.correct ? 'table-success' : 'table-danger';
-      return '<tr class="' + rowClass + '">' +
-        '<td class="text-center">' + d.nomor + '</td>' +
-        '<td>' + soalObj.q + '</td>' +
-        '<td class="text-center">' + jawabHtml + '</td>' +
-        '<td class="text-center">' + kunciHtml + '</td>' +
-        '<td class="text-center fw-bold">' + (d.correct ? '\u2713' : '\u2717') + '</td>' +
-        '</tr>';
-    }).join('');
+    if (showKeys) {
+      // Mode lengkap: tampilkan soal, jawaban mahasiswa, dan kunci jawaban
+      tbody.innerHTML = details.map(function (d, i) {
+        const soalObj    = examState.soal[i];
+        const jawabHtml = getHtmlForKey(soalObj, d.jawaban);
+        const kunciHtml = getHtmlForKey(soalObj, d.kunci);
+        const rowClass  = d.correct ? 'table-success' : 'table-danger';
+        return '<tr class="' + rowClass + '">' +
+          '<td class="text-center">' + d.nomor + '</td>' +
+          '<td>' + soalObj.q + '</td>' +
+          '<td class="text-center">' + jawabHtml + '</td>' +
+          '<td class="text-center">' + kunciHtml + '</td>' +
+          '<td class="text-center fw-bold">' + (d.correct ? '\u2713' : '\u2717') + '</td>' +
+          '</tr>';
+      }).join('');
+    } else {
+      // Mode terlindungi: hanya tampilkan nomor soal dan status benar/salah
+      tbody.innerHTML = details.map(function (d) {
+        const rowClass = d.correct ? 'table-success' : 'table-danger';
+        const icon     = d.correct ? '\u2713' : '\u2717';
+        return '<tr class="' + rowClass + '">' +
+          '<td class="text-center">' + d.nomor + '</td>' +
+          '<td class="text-center fw-bold fs-5">' + icon + '</td>' +
+          '</tr>';
+      }).join('');
+    }
   }
 
   showScreen('screen-recap');
 
-  if (window.MathJax && tbody) {
+  if (window.MathJax && tbody && showKeys) {
     MathJax.typesetPromise([tbody]).catch(function () {});
   }
 }

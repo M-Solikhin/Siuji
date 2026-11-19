@@ -142,6 +142,26 @@
     </div>
   </div>
 
+  <!-- Opsi Rekap -->
+  <div class="card mb-3 border-warning">
+    <div class="card-body py-2 px-3">
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" id="g-showkeys">
+        <label class="form-check-label small" for="g-showkeys">
+          <strong>🔑 Tampilkan jawaban lengkap di rekap mahasiswa</strong>
+          <span class="text-muted fw-normal">
+            — Aktifkan untuk posttest/sesi review. Biarkan <em>tidak dicentang</em>
+            untuk pretest agar kunci jawaban tidak bocor dari rekap.
+          </span>
+        </label>
+      </div>
+      <div class="form-text ms-4">
+        <strong>Default (tidak dicentang):</strong> mahasiswa hanya melihat "✓ / ✗" per soal tanpa teks jawaban.<br>
+        <strong>Dicentang:</strong> menampilkan soal, jawaban mahasiswa, dan jawaban benar — seperti mode ulasan.
+      </div>
+    </div>
+  </div>
+
   <div class="d-flex flex-wrap gap-2 mb-4">
     <button class="btn btn-primary fw-semibold" id="btn-generate" onclick="generateLinkUjian()">
       🔗 Generate Link Ujian
@@ -525,6 +545,7 @@ async function generateLinkUjian() {
   }
   if (startTs) ujianCfg.start = startTs;
   if (expTs)   ujianCfg.exp   = expTs;
+  if (document.getElementById('g-showkeys').checked) ujianCfg.sk = true;
 
   const encoded   = btoa(unescape(encodeURIComponent(JSON.stringify(ujianCfg))));
   const ujianBase = window.location.href.replace(/\/[^\/]*(\?.*)?$/, '/ujian.html');
