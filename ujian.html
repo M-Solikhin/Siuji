@@ -1404,7 +1404,27 @@ async function checkPassword() {
 }
 
 // ─── Screen: Identitas & Inisialisasi Ujian ───────────────────────────────────
-function startExam() {
+// ── Cek NIM di Google Sheets (doGet Apps Script) ────────────────────────────
+async function checkNimDiSheets(nim, examId, webhookUrl) {
+  if (!webhookUrl || !examId) return { taken: false };
+  try {
+    const url = webhookUrl
+      + '?action=check_nim'
+      + '&exam_id=' + encodeURIComponent(examId)
+      + '&nim='     + encodeURIComponent(nim);
+    const ctrl  = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 7000);
+    const res   = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(timer);
+    if (!res.ok) return { taken: false };
+    return await res.json();
+  } catch(e) {
+    console.warn('[SIUJI] checkNimDiSheets:', e.message);
+    return { taken: false };
+  }
+}
+
+async function startExam() {
   const nama     = document.getElementById('f-nama').value.trim();
   const nim      = document.getElementById('f-nim').value.trim();
   const mk       = document.getElementById('f-mk').value.trim();
@@ -1447,6 +1467,30 @@ function startExam() {
     errEl.style.display = 'block';
     examState.student = null;
     return;
+  }
+
+  // ── [Fitur 2] Cek NIM di Google Sheets (lintas browser/device) ────────────
+  if (cfg && cfg.w && cfg.id) {
+    const startBtn = document.querySelector('#screen-identity .btn-primary');
+    const origTxt  = startBtn ? startBtn.innerHTML : '';
+    if (startBtn) { startBtn.disabled = true; startBtn.innerHTML = '⏳ Memeriksa data...'; }
+    errEl.style.display = 'none';
+    let sheetsOk = false;
+    try {
+      const chk = await checkNimDiSheets(nim, cfg.id, cfg.w);
+      if (chk.taken) {
+        errEl.textContent = '⛔ NIM ' + nim + ' sudah mengerjakan ujian ini sebelumnya ' +
+          '(mungkin di browser/device lain). Hubungi dosen jika ada kekeliruan.';
+        errEl.style.display = 'block';
+        examState.student = null;
+        if (startBtn) { startBtn.disabled = false; startBtn.innerHTML = origTxt; }
+        return;
+      }
+      sheetsOk = true;
+    } catch(e) {
+      console.warn('[SIUJI] NIM check Sheets gagal, lanjut tanpa cek:', e.message);
+    }
+    if (startBtn) { startBtn.disabled = false; startBtn.innerHTML = origTxt; }
   }
 
   examState.answers    = {};
