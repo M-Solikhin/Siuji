@@ -763,8 +763,66 @@ const ANSWER_POOL_PBM22 = [
   { key:"3.0",   latex:"3{,}0" },
 ];
 
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  SUB-BAB PBM.2.3 — Kesebangunan Geometri: Soal-Soal
+// ══════════════════════════════════════════════════════════════════════════════
+const ANSWER_POOL_PBM23 = [
+  { key:"1.710",  latex:"5^{1/3} \\approx 1{,}710" },
+  { key:"5.13",   latex:"\\approx 5{,}13\\ \\text{ft}" },
+  { key:"3.42",   latex:"\\approx 3{,}42\\ \\text{ft}" },
+  { key:"1.155",  latex:"\\sqrt{4/3} \\approx 1{,}155" },
+  { key:"1.049",  latex:"(4/3)^{1/6} \\approx 1{,}049" },
+  { key:"4",      latex:"4" },
+  { key:"100",    latex:"100" },
+  { key:"0.660",  latex:"0{,}660" },
+];
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  SUB-BAB PBM.2.4 — Konsumsi Bahan Bakar: Soal-Soal
+// ══════════════════════════════════════════════════════════════════════════════
+const EXP_POOL_PBM24 = [
+  { key:"1",   latex:"1" },
+  { key:"2",   latex:"2" },
+  { key:"3",   latex:"3" },
+  { key:"-1",  latex:"-1" },
+  { key:"-2",  latex:"-2" },
+];
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  SUB-BAB PBM.2.5 — Berat & Tinggi, Kekuatan & Kelincahan: Soal-Soal
+// ══════════════════════════════════════════════════════════════════════════════
+const RATIO_POOL_PBM25 = [
+  { key:"0.838",  latex:"\\approx 0{,}838" },
+  { key:"1.194",  latex:"\\approx 1{,}194" },
+  { key:"0.701",  latex:"\\approx 0{,}701" },
+  { key:"0.916",  latex:"\\approx 0{,}916" },
+];
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  SUB-BAB PBM.3.1 — Transformasi Data & Pencocokan Model
+// ══════════════════════════════════════════════════════════════════════════════
+const EXP_POOL_PBM31 = [
+  { key:"3.09",  latex:"3{,}09" },
+  { key:"0.100", latex:"0{,}100" },
+  { key:"0.070", latex:"0{,}070" },
+  { key:"8.00",  latex:"8{,}00" },
+];
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  SUB-BAB PBM.3.2 — Kriteria Chebyshev
+// ══════════════════════════════════════════════════════════════════════════════
+const ANSWER_POOL_PBM32 = [
+  { key:"0.92",     latex:"0{,}92" },
+  { key:"0.035",    latex:"0{,}035" },
+  { key:"62.56",    latex:"62{,}56" },
+  { key:"0.001391", latex:"0{,}001391" },
+];
+
 // ── Lookup tabel pool per sub-bab (semua pool sudah dideklarasikan di atas) ──
-const POOLS = { '15.1': ANSWER_POOL, '15.2': ANSWER_POOL_152, 'PBM.1.1': ANSWER_POOL_PBM11, 'PBM.1.2': ANSWER_POOL_PBM12, 'PBM.1.3': ANSWER_POOL_PBM13, 'PBM.1.4': ANSWER_POOL_PBM14, 'PBM.2.1': ANSWER_POOL_PBM21, 'PBM.2.2': ANSWER_POOL_PBM22 };
+const POOLS = { '15.1': ANSWER_POOL, '15.2': ANSWER_POOL_152, 'PBM.1.1': ANSWER_POOL_PBM11, 'PBM.1.2': ANSWER_POOL_PBM12, 'PBM.1.3': ANSWER_POOL_PBM13, 'PBM.1.4': ANSWER_POOL_PBM14, 'PBM.2.1': ANSWER_POOL_PBM21, 'PBM.2.2': ANSWER_POOL_PBM22, 'PBM.2.3': ANSWER_POOL_PBM23, 'PBM.2.4': EXP_POOL_PBM24, 'PBM.2.5': RATIO_POOL_PBM25, 'PBM.3.1': EXP_POOL_PBM31, 'PBM.3.2': ANSWER_POOL_PBM32 };
 
 SOAL_BANK['PBM.2.2'] = [
   // Soal 1 — Makna proporsionalitas (Soal 2 buku)
@@ -888,7 +946,200 @@ SOAL_BANK['PBM.2.2'] = [
     ]},
 ];
 
-// ─── Mulberry32 PRNG ──────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+//  SUB-BAB PBM.2.3 — Kesebangunan Geometri: Soal-Soal
+// ══════════════════════════════════════════════════════════════════════════════
+SOAL_BANK['PBM.2.3'] = [
+  // Soal 1 — Flamingo: faktor skala λ (Soal 2 buku)
+  { id:1, q:"Seekor flamingo merah muda (20 lb) memiliki tinggi 3 ft dan panjang kaki 2 ft. Dengan asumsi kesebangunan geometris dan berat \\(\\propto \\lambda^3\\), faktor skala linear \\(\\lambda\\) dari flamingo 20 lb ke flamingo 100 lb adalah...",
+    kunci:"1.710" },
+
+  // Soal 2 — Flamingo: tinggi H (Soal 2 buku)
+  { id:2, q:"Flamingo merah muda (20 lb) memiliki tinggi 3 ft. Dengan \\(\\lambda = 5^{1/3} \\approx 1{,}71\\), tinggi flamingo 100 lb adalah...",
+    kunci:"5.13" },
+
+  // Soal 3 — Flamingo: panjang kaki \u2113 (Soal 2 buku)
+  { id:3, q:"Flamingo merah muda (20 lb) memiliki panjang kaki 2 ft. Dengan \\(\\lambda = 5^{1/3} \\approx 1{,}71\\), panjang kaki flamingo 100 lb adalah...",
+    kunci:"3.42" },
+
+  // Soal 4 — Bidang miring, S sama (Soal 3 buku)
+  { id:4, q:"Dua kotak meluncur di bidang miring, berbobot 600 lb dan 800 lb. Gaya hambat udara \\(\\propto Sv^2\\), gesekan \\(\\propto\\) berat normal. Jika luas penampang \\(S\\) kedua kotak sama, rasio kecepatan terminal \\(v_{800}/v_{600}\\) adalah...",
+    kunci:"1.155" },
+
+  // Soal 5 — Bidang miring, sebangun (Soal 3 buku)
+  { id:5, q:"Dua kotak meluncur di bidang miring. Gaya hambat \\(\\propto Sv^2\\). Jika kedua kotak sebangun secara geometris dengan kerapatan sama (\\(S \\propto m^{2/3}\\), sehingga \\(v_T \\propto m^{1/6}\\)), rasio \\(v_{800}/v_{600}\\) adalah...",
+    kunci:"1.049" },
+
+  // Soal 6 — Kalor: rasio kubus (Soal 4 buku)
+  { id:6, q:"Kehilangan kalor suatu benda sebanding dengan luas permukaannya. Kubus bersisi 12 in kehilangan kalor berapa kali lebih banyak daripada kubus bersisi 6 in?",
+    kunci:"4" },
+
+  // Soal 7 — Kalor: rasio kapal selam (Soal 4 buku)
+  { id:7, q:"Kehilangan kalor \\(\\propto\\) luas permukaan. Kapal selam (panjang 70 ft) dan model skala-nya (panjang 7 ft) serupa secara geometris. Rasio kehilangan kalor kapal selam nyata terhadap modelnya adalah...",
+    kunci:"100" },
+
+  // Soal 8 — Hewan berdarah panas: F \u221d l^? (Soal 5 buku)
+  { id:8, q:"Dua hewan berdarah panas serupa geometris (panjang karakteristik \\(l\\)). Kehilangan panas \\(\\propto\\) luas permukaan, dan energi dari makanan menyeimbangkan panas yang hilang. Jumlah makanan \\(F\\) yang dibutuhkan sebanding dengan \\(l^{\\,?}\\)...",
+    kunci:"Fl2",
+    fixedOptions:[
+      { key:"Fl2",  latex:"l^2" },
+      { key:"Fl1",  latex:"l" },
+      { key:"Fl3",  latex:"l^3" },
+      { key:"Fl23", latex:"l^{2/3}" },
+    ]},
+
+  // Soal 9 — Hewan berdarah panas: F \u221d W^? (Soal 5 buku)
+  { id:9, q:"Dua hewan berdarah panas serupa geometris. Kehilangan panas \\(\\propto\\) luas permukaan. Dengan asumsi kerapatan tubuh rata-rata konstan, jumlah makanan \\(F\\) sebanding dengan berat badan \\(W^{\\,?}\\)...",
+    kunci:"Fw23",
+    fixedOptions:[
+      { key:"Fw23", latex:"W^{2/3}" },
+      { key:"Fw1",  latex:"W" },
+      { key:"Fw13", latex:"W^{1/3}" },
+      { key:"Fw3",  latex:"W^3" },
+    ]},
+
+  // Soal 10 — Kapan model (2.11) = (2.13) (Soal 8 buku)
+  { id:10, q:"Model berat ikan: (2.11) \\(W = 0{,}00853\\,l^3\\) dan (2.13) \\(W = 0{,}0196\\,l\\,g^2\\). Kedua model memberikan prediksi yang sama ketika rasio \\(g/l \\approx\\)...",
+    kunci:"0.660" },
+];
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  SUB-BAB PBM.2.4 — Konsumsi Bahan Bakar: Soal-Soal
+// ══════════════════════════════════════════════════════════════════════════════
+SOAL_BANK['PBM.2.4'] = [
+  // Soal 1 — C_r \u221d v^? dengan Fr \u221d Sv (Soal 2a buku)
+  { id:1, q:"Jika gaya hambat \\(F_r \\propto Sv\\) (bukan \\(Sv^2\\)) dan gaya propulsi \\(F_p \\propto C_r/v\\), pada kecepatan konstan (\\(F_p = F_r\\)) laju konsumsi bahan bakar memenuhi \\(C_r \\propto v^{\\,?}\\), nilai eksponennya adalah...",
+    kunci:"2" },
+
+  // Soal 2 — mileage \u221d v^? dengan Fr \u221d Sv (Soal 2b buku)
+  { id:2, q:"Dengan submodel \\(F_r \\propto Sv\\), diperoleh \\(C_r \\propto v^2\\). Maka konsumsi bahan bakar (\\(\\mathrm{mileage} = v/C_r\\)) bergantung pada kecepatan sebagai \\(\\mathrm{mileage} \\propto v^{\\,?}\\), nilai eksponennya adalah...",
+    kunci:"-1" },
+];
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  SUB-BAB PBM.2.5 — Berat & Tinggi, Kekuatan & Kelincahan: Soal-Soal
+// ══════════════════════════════════════════════════════════════════════════════
+SOAL_BANK['PBM.2.5'] = [
+  // Soal 1 — Tes cubitan: W_out ∝ h^? jika τ konstan (Soal 3 buku)
+  { id:1, q:"Pada tes cubitan, model inti luar tubuh: \\(W_{out} = \\tau\\,\\rho_{out}\\,S_{out}\\) dengan \\(S_{out} \\propto h^2\\). Jika ketebalan inti luar \\(\\tau\\) \\textbf{konstan} terhadap tinggi \\(h\\), maka \\(W_{out} \\propto h^{\\,?}\\)...",
+    kunci:"Wh2",
+    fixedOptions:[
+      { key:"Wh2",   latex:"h^2" },
+      { key:"Wh3",   latex:"h^3" },
+      { key:"Wh1",   latex:"h" },
+      { key:"Wh32",  latex:"h^{3/2}" },
+    ]},
+
+  // Soal 2 — Tes cubitan: W_out ∝ h^? jika τ ∝ h (Soal 3 buku)
+  { id:2, q:"Model inti luar: \\(W_{out} = \\tau\\,\\rho_{out}\\,S_{out}\\) dengan \\(S_{out} \\propto h^2\\). Jika ketebalan \\(\\tau\\) \\textbf{sebanding} dengan tinggi \\(h\\) (\\(\\tau \\propto h\\)), maka \\(W_{out} \\propto h^{\\,?}\\)...",
+    kunci:"Wh3",
+    fixedOptions:[
+      { key:"Wh3",   latex:"h^3" },
+      { key:"Wh2",   latex:"h^2" },
+      { key:"Wh4",   latex:"h^4" },
+      { key:"Wh52",  latex:"h^{5/2}" },
+    ]},
+
+  // Soal 3 — Senam: kelincahan ∝ l^? (Soal 4 buku)
+  { id:3, q:"Kelincahan didefinisikan sebanding dengan rasio kekuatan terhadap berat badan. Dengan asumsi kekuatan \\(\\propto l^2\\) dan berat \\(\\propto l^3\\) (serupa geometris, \\(l\\) = panjang karakteristik), maka kelincahan \\(\\propto l^{\\,?}\\)...",
+    kunci:"lm1",
+    fixedOptions:[
+      { key:"lm1",  latex:"l^{-1}" },
+      { key:"lm2",  latex:"l^{-2}" },
+      { key:"l1",   latex:"l" },
+      { key:"lm13", latex:"l^{-1/3}" },
+    ]},
+
+  // Soal 4 — Senam: kelincahan ∝ W^? (Soal 4 buku)
+  { id:4, q:"Kelincahan \\(\\propto 1/l\\) dan berat badan \\(W \\propto l^3\\), sehingga \\(l \\propto W^{1/3}\\). Maka kelincahan \\(\\propto W^{\\,?}\\)...",
+    kunci:"Wm13",
+    fixedOptions:[
+      { key:"Wm13",  latex:"W^{-1/3}" },
+      { key:"Wm1",   latex:"W^{-1}" },
+      { key:"W13",   latex:"W^{1/3}" },
+      { key:"Wm23",  latex:"W^{-2/3}" },
+    ]},
+
+  // Soal 5 — Senam: rasio kelincahan 74in vs 62in (Soal 4 buku)
+  { id:5, q:"Dua atlet senam serupa geometris berukuran tinggi 62 inci dan 74 inci. Karena kelincahan \\(\\propto 1/l\\), rasio kelincahan atlet 74 inci terhadap atlet 62 inci adalah...",
+    kunci:"0.838" },
+];
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  SUB-BAB PBM.3.1 — Transformasi Data & Pencocokan Model
+// ══════════════════════════════════════════════════════════════════════════════
+SOAL_BANK['PBM.3.1'] = [
+  // Soal 1 — Pohon ponderosa: eksponen b (Soal 3 buku)
+  { id:1, q:"Data pohon pinus ponderosa: diameter \\(x\\) (in) dan volume \\(y\\) (board-feet/10). Plot \\(\\ln y\\) vs \\(\\ln x\\) menghasilkan garis lurus, menunjukkan \\(y=ax^b\\). Eksponen \\(b\\) hasil regresi OLS adalah...",
+    kunci:"3.09" },
+
+  // Soal 2 — Lalat buah P=ae^bt: laju b (Soal 5b buku)
+  { id:2, q:"Data populasi lalat buah (hari \\(t\\): 7, 14, 21, 28, 35, 42; populasi \\(P\\): 8, 41, 133, 250, 280, 297). Regresi \\(\\ln P\\) vs \\(t\\) menghasilkan model \\(P=ae^{bt}\\). Laju \\(b \\approx\\)...",
+    kunci:"0.100" },
+
+  // Soal 3 — Konsumsi energi Q=ae^bx: laju b (Soal 6 buku)
+  { id:3, q:"Data konsumsi energi (ternormalisasi, 1900--2000) mengikuti \\(Q=ae^{bx}\\), dengan \\(x\\) = tahun sejak 1900. Data berlipat dua setiap 10 tahun. Regresi \\(\\ln Q\\) vs \\(x\\) memberikan \\(b \\approx\\)...",
+    kunci:"0.070" },
+
+  // Soal 4 — Hukum Kepler: eksponen a (Soal 7b buku)
+  { id:4, q:"Hukum Ketiga Kepler: periode orbit planet \\(T\\) dan jarak dari matahari \\(r\\) mengikuti \\(T=Cr^a\\). Dari regresi \\(\\ln T\\) vs \\(\\ln r\\) untuk 8 planet, eksponen \\(a \\approx\\)...",
+    kunci:"Ka32",
+    fixedOptions:[
+      { key:"Ka32",  latex:"\\dfrac{3}{2}" },
+      { key:"Ka1",   latex:"1" },
+      { key:"Ka2",   latex:"2" },
+      { key:"Ka23",  latex:"\\dfrac{2}{3}" },
+    ]},
+
+  // Soal 5 — Hukum Kepler dalam bentuk kuadrat (Soal 7b buku)
+  { id:5, q:"Hukum Ketiga Kepler: \\(T \\propto r^{3/2}\\). Dinyatakan dalam kuadrat periode, persamaan yang setara adalah \\(T^2 \\propto r^{\\,?}\\)...",
+    kunci:"r3",
+    fixedOptions:[
+      { key:"r3",  latex:"r^3" },
+      { key:"r2",  latex:"r^2" },
+      { key:"r94", latex:"r^{9/4}" },
+      { key:"r32", latex:"r^{3/2}" },
+    ]},
+];
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  SUB-BAB PBM.3.2 — Kriteria Chebyshev
+// ══════════════════════════════════════════════════════════════════════════════
+SOAL_BANK['PBM.3.2'] = [
+  // Soal 1 — Chebyshev linear 6 data: r (Soal 2a buku)
+  { id:1, q:"Kriteria Chebyshev untuk data 6 titik (\\(x\\): 1,0; 2,3; 3,7; 4,2; 6,1; 7,0 dan \\(y\\): 3,6; 3,0; 3,2; 5,1; 5,3; 6,8), model \\(y=ax+b\\). Deviasi terbesar optimal \\(r =\\)...",
+    kunci:"0.92" },
+
+  // Soal 2 — Chebyshev linear 7 data: a (Soal 2c buku)
+  { id:2, q:"Kriteria Chebyshev untuk data 7 titik (\\(x\\): 2,5; 3,0; 3,5; 4,0; 4,5; 5,0; 5,5 dan \\(y\\): 4,32; 4,83; 5,27; 5,74; 6,26; 6,79; 7,23), model \\(y=ax+b\\). Kemiringan optimal \\(a =\\)...",
+    kunci:"Rk2ca",
+    fixedOptions:[
+      { key:"Rk2ca",  latex:"0{,}98" },
+      { key:"Rk2cA",  latex:"0{,}53" },
+      { key:"Rk2cB",  latex:"1{,}25" },
+      { key:"Rk2cC",  latex:"0{,}77" },
+    ]},
+
+  // Soal 3 — Chebyshev linear 7 data: r (Soal 2c buku)
+  { id:3, q:"Lanjutan data 7 titik Soal 2 (\\(x\\): 2,5--5,5 dan \\(y\\): 4,32--7,23), model \\(y=ax+b\\): deviasi terbesar Chebyshev optimal \\(r =\\)...",
+    kunci:"0.035" },
+
+  // Soal 4 — Chebyshev kuadratik: c₁ (Soal 3 buku)
+  { id:4, q:"Kriteria Chebyshev untuk model \\(y = c_1x^2 + c_2x + c_3\\) pada 5 data (\\(x\\): 0,1; 0,2; 0,3; 0,4; 0,5 dan \\(y\\): 0,06; 0,12; 0,36; 0,65; 0,95). Koefisien \\(c_1 =\\)...",
+    kunci:"Rk3c1",
+    fixedOptions:[
+      { key:"Rk3c1",  latex:"4{,}0" },
+      { key:"Rk3c1B", latex:"2{,}0" },
+      { key:"Rk3c1C", latex:"6{,}5" },
+      { key:"Rk3c1D", latex:"1{,}5" },
+    ]},
+
+  // Soal 5 — Chebyshev nonlinear P=ae^bt: r (Soal 4 buku)
+  { id:5, q:"Kriteria Chebyshev untuk \\(P=ae^{bt}\\) pada data lalat buah (\\(t\\): 7,14,21,28,35,42; \\(P\\): 8,41,133,250,280,297). Diselesaikan numerik karena tidak linear. Deviasi terbesar optimal \\(r \\approx\\)...",
+    kunci:"62.56" },
+];
+
+// ─── Mulberry32─────────────────────────────────────────────
 function nimSeed(str) {
   let h = 2166136261 >>> 0;
   for (let i = 0; i < str.length; i++) {
@@ -966,6 +1217,24 @@ function getLatexForKey(soalObj, key) {
   }
   const entry = ANSWER_POOL.find(a => a.key === key);
   return entry ? entry.latex : key;
+}
+
+function getHtmlForKey(soalObj, key) {
+  // Returns ready-to-use HTML for an answer key (supports both latex and img entries)
+  if (!key) return '<span class="opt-math">\\(\\text{\u2014}\\)</span>';
+  let entry = null;
+  if (soalObj && soalObj.fixedOptions)
+    entry = soalObj.fixedOptions.find(o => o.key === key);
+  if (!entry) {
+    for (const pk in POOLS) {
+      const found = POOLS[pk].find(a => a.key === key);
+      if (found) { entry = found; break; }
+    }
+  }
+  if (!entry) return '<span>' + key + '</span>';
+  if (entry.img)
+    return '<img src="' + entry.img + '" alt="opsi" style="max-height:60px;max-width:150px;vertical-align:middle;">';
+  return '<span class="opt-math">\\(' + entry.latex + '\\)</span>';
 }
 
 // ─── Helper: label sub-bab (single atau multi-bank) ──────────────────────────
@@ -1277,7 +1546,9 @@ function renderSoal(idx) {
     return '<label class="option-btn' + (isSel ? ' selected' : '') + '">' +
       '<input type="radio" name="soal_' + idx + '" data-key="' + opt.key + '"' +
       (isSel ? ' checked' : '') + '>' +
-      '<span class="opt-math">\\(' + opt.latex + '\\)</span>' +
+      (opt.img
+        ? '<img src="' + opt.img + '" alt="opsi" style="max-height:90px;max-width:100%;vertical-align:middle;">'
+        : '<span class="opt-math">\\(' + opt.latex + '\\)</span>') +
       '</label>';
   }).join('');
 
@@ -1553,14 +1824,14 @@ function showRecap(details, benar, salah, kosong, total, skor) {
   if (tbody) {
     tbody.innerHTML = details.map(function (d, i) {
       const soalObj    = examState.soal[i];
-      const jawabLatex = getLatexForKey(soalObj, d.jawaban);
-      const kunciLatex = getLatexForKey(soalObj, d.kunci);
-      const rowClass   = d.correct ? 'table-success' : 'table-danger';
+      const jawabHtml = getHtmlForKey(soalObj, d.jawaban);
+      const kunciHtml = getHtmlForKey(soalObj, d.kunci);
+      const rowClass  = d.correct ? 'table-success' : 'table-danger';
       return '<tr class="' + rowClass + '">' +
         '<td class="text-center">' + d.nomor + '</td>' +
         '<td>' + soalObj.q + '</td>' +
-        '<td class="text-center">\\(' + jawabLatex + '\\)</td>' +
-        '<td class="text-center">\\(' + kunciLatex + '\\)</td>' +
+        '<td class="text-center">' + jawabHtml + '</td>' +
+        '<td class="text-center">' + kunciHtml + '</td>' +
         '<td class="text-center fw-bold">' + (d.correct ? '\u2713' : '\u2717') + '</td>' +
         '</tr>';
     }).join('');
