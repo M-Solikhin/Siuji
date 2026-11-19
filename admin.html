@@ -466,6 +466,12 @@ function doLogin() {
     loadGhSettingsFromStorage();
     toggleTimeField('start');
     toggleTimeField('exp');
+    // Event delegation: refresh waktu saat sub-bab dipilih
+    document.getElementById('dashboard').addEventListener('change', function(e) {
+      if (e.target && e.target.classList.contains('sb-check')) {
+        refreshTimeDefaults();
+      }
+    }, { once: false });
     // Load webhook URL after dashboard render
     const wh = localStorage.getItem(LS_PREFIX + 'webhook_url') || '';
     document.getElementById('webhookUrl').value = wh;
@@ -1100,6 +1106,24 @@ function showToast(msg, type) {
     toast.style.opacity = '0';
     setTimeout(function(){ toast.style.display = 'none'; }, 320);
   }, 2800);
+}
+
+
+// ── Auto-refresh waktu mulai/berakhir saat memilih sub-bab ───────────────────
+function refreshTimeDefaults() {
+  var cbStart = document.getElementById('use-start');
+  var cbExp   = document.getElementById('use-exp');
+  var inStart = document.getElementById('g-start');
+  var inExp   = document.getElementById('g-exp');
+  if (cbStart && cbStart.checked && inStart) {
+    inStart.value = _toLocalISO(new Date());
+  }
+  if (cbExp && cbExp.checked && inExp) {
+    var base = (cbStart && cbStart.checked && inStart && inStart.value)
+      ? new Date(inStart.value) : new Date();
+    inExp.value = _toLocalISO(new Date(base.getTime() + 3 * 3600000));
+  }
+  saveGlobalConfig();
 }
 
 </script>
