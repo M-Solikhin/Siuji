@@ -780,17 +780,28 @@ async function toggleBlockLink(id) {
   setLinkHistory(hist);
 
   const result = await pushBlockListToGitHub();
+
   if (result === true) {
-    _lmStatus(id, lk.blocked ? '✅ Diblokir' : '✅ Diaktifkan', 'success');
+    // Sukses: render dulu baru set status (agar elemen sudah ada di DOM)
+    renderLinkManager();
+    _lmStatus(id, lk.blocked ? '✅ Diblokir di GitHub' : '✅ Diaktifkan di GitHub', 'success');
+
   } else if (result === 'no_token') {
-    _lmStatus(id, '⚠️ Set GitHub Token dulu', 'warning');
-    // Tetap simpan status lokal walau push gagal
-  } else {
-    _lmStatus(id, '❌ Push GitHub gagal', 'danger');
-    lk.blocked = !lk.blocked; // revert
+    // Revert — blokir tidak aktif tanpa push ke GitHub
+    lk.blocked = !lk.blocked;
     setLinkHistory(hist);
+    renderLinkManager();
+    alert('⚠️ GitHub Token belum dikonfigurasi.\n\n' +
+          'Isikan token di panel ⚙️ Pengaturan GitHub di bawah → klik Simpan → coba Blokir lagi.\n\n' +
+          'Tanpa token, link TIDAK benar-benar diblokir di GitHub Pages.');
+
+  } else {
+    // Error lain: revert dan tampilkan pesan
+    lk.blocked = !lk.blocked;
+    setLinkHistory(hist);
+    renderLinkManager();
+    _lmStatus(id, '❌ Push ke GitHub gagal — coba lagi', 'danger');
   }
-  renderLinkManager();
 }
 
 async function pushBlockListToGitHub() {
