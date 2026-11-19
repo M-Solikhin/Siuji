@@ -15,7 +15,10 @@
     code { background: #e8ecf0; padding: 2px 6px; border-radius: 4px; font-size: 0.85em; }
     .apps-script { background: #272822; color: #f8f8f2; border-radius: 8px; padding: 16px;
                    font-family: 'Courier New', monospace; font-size: 0.78rem; white-space: pre; overflow-x: auto; }
-  </style>
+  
+  .btn-xs { padding: 0.15rem 0.4rem; font-size: 0.75rem; line-height: 1.4; }
+  #lmTableBody td { vertical-align: middle; }
+</style>
 </head>
 <body>
 
@@ -288,7 +291,64 @@
     </div>
   </div>
 
-  <div class="mt-5 pt-3 border-top text-center" style="font-size:0.74rem;color:#8a9bb0">
+  
+<!-- ═══ LINK MANAGER ══════════════════════════════════════════════════════════ -->
+<div class="card shadow-sm mt-4" id="linkManagerCard" style="display:none">
+  <div class="card-header d-flex justify-content-between align-items-center py-2">
+    <span class="fw-semibold">📋 Riwayat Link Ujian</span>
+    <button class="btn btn-sm btn-outline-danger" onclick="clearLinkHistory()">🗑 Hapus Semua Riwayat</button>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm table-hover mb-0">
+      <thead class="table-light">
+        <tr>
+          <th style="width:2.5rem">#</th>
+          <th>Label & MK</th>
+          <th>Sub-bab (soal)</th>
+          <th>Dibuat</th>
+          <th style="width:6rem">Status</th>
+          <th style="width:11rem">Aksi</th>
+        </tr>
+      </thead>
+      <tbody id="lmTableBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ GITHUB SETTINGS ════════════════════════════════════════════════════════ -->
+<div class="card shadow-sm mt-3">
+  <div class="card-header py-2">
+    <span class="fw-semibold">⚙️ Pengaturan GitHub</span>
+    <small class="text-muted ms-1">— untuk Blokir/Aktifkan link langsung dari sini</small>
+  </div>
+  <div class="card-body">
+    <div class="row g-2 align-items-end mb-2">
+      <div class="col-md-6">
+        <label class="form-label small mb-1 fw-semibold">GitHub Personal Access Token</label>
+        <small class="text-muted d-block mb-1">Buat di <a href="https://github.com/settings/tokens" target="_blank">github.com/settings/tokens</a> → Generate new (classic) → centang <code>repo</code></small>
+        <div class="input-group input-group-sm">
+          <input type="password" id="gh-token" class="form-control" placeholder="github_pat_...">
+          <button class="btn btn-outline-secondary" type="button"
+            onclick="var el=document.getElementById('gh-token');el.type=el.type==='password'?'text':'password'">👁</button>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label small mb-1 fw-semibold">Repo GitHub</label>
+        <input type="text" id="gh-repo" class="form-control form-control-sm" placeholder="m-solikhin/Siuji">
+      </div>
+      <div class="col-md-2">
+        <button class="btn btn-primary btn-sm w-100 mb-0" onclick="saveGhSettings()">💾 Simpan</button>
+      </div>
+    </div>
+    <div class="d-flex gap-2 align-items-center">
+      <button class="btn btn-outline-secondary btn-sm" onclick="testGhToken()">🔗 Uji Koneksi</button>
+      <span id="gh-status" class="small"></span>
+    </div>
+    <p class="small text-muted mt-2 mb-0">Token tersimpan di browser ini saja dan hanya dikirim ke GitHub API. Tidak ada server lain yang menerimanya.</p>
+  </div>
+</div>
+
+<div class="mt-5 pt-3 border-top text-center" style="font-size:0.74rem;color:#8a9bb0">
     <div style="font-weight:600;color:#5a6a80;margin-bottom:4px">Aplikasi Ujian Departemen Matematika</div>
     Departemen Matematika, Universitas Negeri Malang &nbsp;·&nbsp;
     Dikembangkan oleh <strong>Mukhammad Solikhin, M.Si.</strong><br>
@@ -358,6 +418,7 @@ function getAdminPwd() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  loadGhSettingsFromStorage();
   document.getElementById('adminPwdInput').addEventListener('keydown', e => {
     if (e.key === 'Enter') doLogin();
   });
@@ -372,6 +433,8 @@ function doLogin() {
     document.getElementById('loginWrapper').style.display = 'none';
     document.getElementById('dashboard').style.display = 'block';
     renderMKPanel();
+    renderLinkManager();
+    loadGhSettingsFromStorage();
     // Load webhook URL after dashboard render
     const wh = localStorage.getItem(LS_PREFIX + 'webhook_url') || '';
     document.getElementById('webhookUrl').value = wh;
@@ -568,6 +631,11 @@ async function generateLinkUjian() {
     (startTs ? ` &nbsp;|&nbsp; Mulai: <strong>${new Date(startTs).toLocaleString('id-ID')}</strong>` : '') +
     (expTs   ? ` &nbsp;|&nbsp; Berakhir: <strong>${new Date(expTs).toLocaleString('id-ID')}</strong>` : '');
   document.getElementById('linkCard').style.display = 'block';
+  // ── Simpan ke riwayat Link Manager ──
+  saveLinkToHistory({ id: examId, label: jenisLabel, mk,
+    sb:  sbsArr.length === 1 ? sbsArr[0].sb : null,
+    sbs: sbsArr.length >  1 ? sbsArr        : null,
+    n: totalN, d: dur, ts: Date.now(), url: link, blocked: false });
   document.getElementById('linkCard').scrollIntoView({ behavior: 'smooth' });
 }
 
@@ -617,6 +685,189 @@ async function testWebhook() {
           '\n\nPastikan Apps Script sudah di-deploy sebagai "Anyone" dan URL sudah benar.');
   }
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  LINK MANAGER — riwayat link yang di-generate, blokir/aktifkan via GitHub API
+// ══════════════════════════════════════════════════════════════════════════════
+const LM_KEY       = 'siuji_link_history';
+const GH_TOKEN_KEY = 'siuji_github_token';
+const GH_REPO_KEY  = 'siuji_github_repo';
+
+function getLinkHistory() {
+  try { return JSON.parse(localStorage.getItem(LM_KEY) || '[]'); } catch(e) { return []; }
+}
+function setLinkHistory(arr) { localStorage.setItem(LM_KEY, JSON.stringify(arr)); }
+
+function saveLinkToHistory(linkData) {
+  const hist = getLinkHistory();
+  if (!hist.find(h => h.id === linkData.id)) {
+    hist.unshift(linkData);
+    if (hist.length > 300) hist.splice(300);
+    setLinkHistory(hist);
+  }
+  renderLinkManager();
+}
+
+function renderLinkManager() {
+  const card  = document.getElementById('linkManagerCard');
+  const tbody = document.getElementById('lmTableBody');
+  if (!card || !tbody) return;
+  const hist = getLinkHistory();
+  if (hist.length === 0) { card.style.display = 'none'; return; }
+  card.style.display = '';
+
+  const _fmtSb = sb => sb && sb.startsWith('PBM.') ? 'Pemodelan ' + sb.slice(4) : (sb || '—');
+
+  tbody.innerHTML = hist.map((lk, i) => {
+    const sbLabel = lk.sbs
+      ? lk.sbs.map(s => _fmtSb(s.sb) + '(' + s.n + ')').join('<br>')
+      : (_fmtSb(lk.sb) + (lk.n ? ' (' + lk.n + ' soal)' : ''));
+    const tgl = lk.ts
+      ? new Date(lk.ts).toLocaleString('id-ID', {day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'})
+      : '—';
+    const badge = lk.blocked
+      ? '<span class="badge bg-danger">🔴 Blokir</span>'
+      : '<span class="badge bg-success">🟢 Aktif</span>';
+    const blockBtn = lk.blocked
+      ? `<button class="btn btn-xs btn-outline-success" onclick="toggleBlockLink('${lk.id}')" title="Aktifkan kembali">✓ Aktifkan</button>`
+      : `<button class="btn btn-xs btn-outline-danger"  onclick="toggleBlockLink('${lk.id}')" title="Blokir link">🔒 Blokir</button>`;
+    return `<tr class="${lk.blocked ? 'table-secondary text-muted' : ''}">
+      <td class="text-muted small">${hist.length - i}</td>
+      <td><strong>${lk.label || '—'}</strong><br><small class="text-muted">${lk.mk || ''}</small></td>
+      <td class="small">${sbLabel}</td>
+      <td class="small text-muted">${tgl}</td>
+      <td>${badge}</td>
+      <td>
+        <div class="d-flex gap-1 align-items-center flex-wrap">
+          <button class="btn btn-xs btn-outline-primary" onclick="copyLinkHistory('${lk.id}')" title="Salin link">📋 Salin</button>
+          ${blockBtn}
+          <span id="lm-st-${lk.id}" class="small ms-1"></span>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function copyLinkHistory(id) {
+  const lk = getLinkHistory().find(h => h.id === id);
+  if (!lk || !lk.url) return;
+  navigator.clipboard.writeText(lk.url)
+    .then(() => _lmStatus(id, '✅ Tersalin!', 'success'))
+    .catch(() => { prompt('Salin link berikut:', lk.url); });
+}
+
+function clearLinkHistory() {
+  if (!confirm('Hapus semua riwayat link?\n(Ini TIDAK memblokir link yang sudah dibagikan — hanya menghapus catatan lokal)')) return;
+  localStorage.removeItem(LM_KEY);
+  renderLinkManager();
+}
+
+function _lmStatus(id, msg, type) {
+  const el = document.getElementById('lm-st-' + id);
+  if (!el) return;
+  el.textContent = msg;
+  el.className = 'small ms-1 text-' + type;
+  setTimeout(() => { el.textContent = ''; }, 3000);
+}
+
+async function toggleBlockLink(id) {
+  const hist = getLinkHistory();
+  const lk   = hist.find(h => h.id === id);
+  if (!lk) return;
+
+  _lmStatus(id, '⏳', 'muted');
+  lk.blocked = !lk.blocked;
+  setLinkHistory(hist);
+
+  const result = await pushBlockListToGitHub();
+  if (result === true) {
+    _lmStatus(id, lk.blocked ? '✅ Diblokir' : '✅ Diaktifkan', 'success');
+  } else if (result === 'no_token') {
+    _lmStatus(id, '⚠️ Set GitHub Token dulu', 'warning');
+    // Tetap simpan status lokal walau push gagal
+  } else {
+    _lmStatus(id, '❌ Push GitHub gagal', 'danger');
+    lk.blocked = !lk.blocked; // revert
+    setLinkHistory(hist);
+  }
+  renderLinkManager();
+}
+
+async function pushBlockListToGitHub() {
+  const token = localStorage.getItem(GH_TOKEN_KEY);
+  if (!token) return 'no_token';
+  const repo = (localStorage.getItem(GH_REPO_KEY) || 'm-solikhin/Siuji').trim();
+  const api  = `https://api.github.com/repos/${repo}/contents/ujian.html`;
+  const hdrs = {
+    Authorization: `Bearer ${token}`,
+    Accept: 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2022-11-28'
+  };
+  try {
+    const getRes  = await fetch(api, { headers: hdrs });
+    if (!getRes.ok) return false;
+    const getJson = await getRes.json();
+    const sha     = getJson.sha;
+    const raw     = decodeURIComponent(escape(atob(getJson.content.replace(/\n/g, ''))));
+
+    const hist       = getLinkHistory();
+    const blockedIds = hist.filter(l => l.blocked).map(l => l.id);
+    const idsJS      = blockedIds.map(id => `  '${id}'`).join(',\n');
+    const newArr     = `const BLOCKED_EXAM_IDS = [\n${idsJS}\n];`;
+    const updated    = raw.replace(/const BLOCKED_EXAM_IDS\s*=\s*\[[\s\S]*?\];/, newArr);
+    if (updated === raw) return false;
+
+    const putRes = await fetch(api, {
+      method: 'PUT',
+      headers: { ...hdrs, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: blockedIds.length
+          ? `admin: block ${blockedIds.length} link(s)`
+          : 'admin: unblock all links',
+        content: btoa(unescape(encodeURIComponent(updated))),
+        sha
+      })
+    });
+    return putRes.ok;
+  } catch(e) {
+    console.error('[LM] pushBlockListToGitHub:', e);
+    return false;
+  }
+}
+
+function saveGhSettings() {
+  const token = document.getElementById('gh-token').value.trim();
+  const repo  = document.getElementById('gh-repo').value.trim();
+  if (token) localStorage.setItem(GH_TOKEN_KEY, token);
+  if (repo)  localStorage.setItem(GH_REPO_KEY, repo);
+  const st = document.getElementById('gh-status');
+  if (st) { st.textContent = '✅ Tersimpan'; st.className = 'small text-success'; setTimeout(()=>{st.textContent='';},2500); }
+}
+
+async function testGhToken() {
+  const token = localStorage.getItem(GH_TOKEN_KEY) || document.getElementById('gh-token').value.trim();
+  const repo  = (localStorage.getItem(GH_REPO_KEY) || document.getElementById('gh-repo').value.trim() || 'm-solikhin/Siuji').trim();
+  const st    = document.getElementById('gh-status');
+  if (!token) { if(st){st.textContent='⚠️ Token belum diisi'; st.className='small text-warning';} return; }
+  if (st) { st.textContent = '⏳ Menguji...'; st.className = 'small text-muted'; }
+  try {
+    const res = await fetch(`https://api.github.com/repos/${repo}`, {
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' }
+    });
+    if (res.ok) { if(st){st.textContent='✅ Token valid — repo ditemukan'; st.className='small text-success';} }
+    else        { if(st){st.textContent='❌ Token tidak valid atau repo salah (status: ' + res.status + ')'; st.className='small text-danger';} }
+  } catch(e) { if(st){st.textContent='❌ ' + e.message; st.className='small text-danger';} }
+}
+
+function loadGhSettingsFromStorage() {
+  const token = localStorage.getItem(GH_TOKEN_KEY);
+  const repo  = localStorage.getItem(GH_REPO_KEY);
+  const te = document.getElementById('gh-token');
+  const re = document.getElementById('gh-repo');
+  if (token && te) te.value = token;
+  if (repo  && re) re.value = repo;
+}
+
 </script>
 </body>
 </html>
