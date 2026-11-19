@@ -134,7 +134,7 @@
         </div>
         <div class="col-sm-6">
           <div class="d-flex align-items-center gap-2 mb-1">
-            <input class="form-check-input mt-0" type="checkbox" id="use-start"
+            <input class="form-check-input mt-0" type="checkbox" id="use-start" checked
               onchange="toggleTimeField('start')" style="cursor:pointer">
             <label class="form-label small fw-semibold mb-0" for="use-start"
               style="cursor:pointer">⏰ Aktifkan Waktu Mulai</label>
@@ -144,7 +144,7 @@
         </div>
         <div class="col-sm-6">
           <div class="d-flex align-items-center gap-2 mb-1">
-            <input class="form-check-input mt-0" type="checkbox" id="use-exp"
+            <input class="form-check-input mt-0" type="checkbox" id="use-exp" checked
               onchange="toggleTimeField('exp')" style="cursor:pointer">
             <label class="form-label small fw-semibold mb-0" for="use-exp"
               style="cursor:pointer">⛔ Aktifkan Waktu Berakhir</label>
@@ -464,6 +464,8 @@ function doLogin() {
     renderMKPanel();
     renderLinkManager();
     loadGhSettingsFromStorage();
+    toggleTimeField('start');
+    toggleTimeField('exp');
     // Load webhook URL after dashboard render
     const wh = localStorage.getItem(LS_PREFIX + 'webhook_url') || '';
     document.getElementById('webhookUrl').value = wh;
@@ -486,7 +488,7 @@ function changeAdminPwd() {
   if (p === null) return;
   if (p.length < 6) { alert('Password terlalu pendek (minimal 6 karakter).'); return; }
   localStorage.setItem(LS_PREFIX + 'admin_pwd', p);
-  alert('✅ Password berhasil diubah!');
+  showToast('✅ Password berhasil diubah!');
 }
 
 /* ===== PANEL TERPADU MK → SUB-BAB ===== */
@@ -498,7 +500,7 @@ function getGlobalConfig() {
 function saveGlobalConfig() {
   const cfg = readGlobalForm();
   localStorage.setItem(LS_PREFIX + 'global_cfg', JSON.stringify(cfg));
-  alert('✅ Konfigurasi disimpan!');
+  showToast('✅ Konfigurasi disimpan!');
 }
 function readGlobalForm() {
   return {
@@ -667,12 +669,20 @@ async function generateLinkUjian() {
     n: totalN, d: dur, ts: Date.now(), url: link, blocked: false });
   // ── Generate QR code ──
   const _fmtSbQR = sb => sb && sb.startsWith('PBM.') ? 'Pemodelan ' + sb.slice(4) : sb;
-  const qrLabel = [
+  const _fmtDT = function(d) {
+    return d.toLocaleDateString('id-ID',{day:'2-digit',month:'2-digit',year:'numeric'})
+      + ' ' + d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+  };
+  const qrLines = [
     jenisLabel,
     mk,
     'Sub-bab: ' + sbsArr.map(s => _fmtSbQR(s.sb)).join(', '),
-    totalN + ' soal · ' + (dur > 0 ? dur + ' mnt' : 'tanpa batas')
-  ].join('\n');
+    totalN + ' soal | Durasi: ' + (dur > 0 ? dur + ' mnt' : 'tanpa batas'),
+    'Dibuat: ' + _fmtDT(new Date())
+  ];
+  if (startTs) qrLines.push('Mulai: ' + _fmtDT(new Date(startTs)));
+  if (expTs)   qrLines.push('Berakhir: ' + _fmtDT(new Date(expTs)));
+  const qrLabel = qrLines.join('\n');
   window._qrFilename = 'qr-' + jenisLabel.toLowerCase().replace(/[^a-z0-9]+/g,'-');
   updateQRDisplay(link, qrLabel);
   document.getElementById('linkCard').scrollIntoView({ behavior: 'smooth' });
@@ -686,7 +696,7 @@ function copyLink() {
     ta.value = txt; document.body.appendChild(ta); ta.select();
     document.execCommand('copy'); document.body.removeChild(ta);
   });
-  alert('✅ Link berhasil disalin ke clipboard!');
+  showToast('✅ Link berhasil disalin ke clipboard!');
 }
 
 function openLink() {
@@ -705,7 +715,7 @@ function toggleWebhook() {
 function saveWebhook() {
   const url = document.getElementById('webhookUrl').value.trim();
   localStorage.setItem(LS_PREFIX + 'webhook_url', url);
-  alert(url ? '✅ URL webhook disimpan!' : '✅ URL webhook dihapus.');
+  showToast(url ? '✅ URL webhook disimpan!' : '✅ URL webhook dihapus.');
 }
 
 async function testWebhook() {
@@ -943,8 +953,8 @@ function generateQRCanvas(url, labelText, callback) {
     if (!qrCanvas) { document.body.removeChild(tmpDiv); return; }
 
     const lines = labelText.split('\n').filter(Boolean);
-    const lineH = 17, pad = 10, W = 220;
-    const H = 200 + pad + lines.length * lineH + pad;
+    const lineH = 17, pad = 10, W = 230, topPad = 12;
+    const H = topPad + 200 + pad + lines.length * lineH + pad;
 
     const canvas = document.createElement('canvas');
     canvas.width = W; canvas.height = H;
@@ -955,20 +965,21 @@ function generateQRCanvas(url, labelText, callback) {
     ctx.fillRect(0, 0, W, H);
 
     // QR (centered)
-    ctx.drawImage(qrCanvas, (W - 200) / 2, 0, 200, 200);
+    // QR dengan top margin
+    ctx.drawImage(qrCanvas, (W - 200) / 2, topPad, 200, 200);
 
     // Garis pemisah
     ctx.strokeStyle = '#dddddd'; ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(12, 203); ctx.lineTo(W - 12, 203);
+    ctx.moveTo(12, topPad + 203); ctx.lineTo(W - 12, topPad + 203);
     ctx.stroke();
 
     // Label teks
     ctx.textAlign = 'center';
     lines.forEach((line, i) => {
-      ctx.font = i === 0 ? 'bold 12px Arial,sans-serif' : '11px Arial,sans-serif';
-      ctx.fillStyle = i === 0 ? '#1a1a2e' : '#555555';
-      ctx.fillText(line, W / 2, 200 + pad + (i + 1) * lineH - 2, W - 16);
+      ctx.font = i === 0 ? 'bold 13px Arial,sans-serif' : (i <= 2 ? '11px Arial,sans-serif' : '10px Arial,sans-serif');
+      ctx.fillStyle = i === 0 ? '#1a1a2e' : (i <= 2 ? '#444' : '#777');
+      ctx.fillText(line, W / 2, topPad + 200 + pad + (i + 1) * lineH - 2, W - 16);
     });
 
     document.body.removeChild(tmpDiv);
@@ -1000,7 +1011,7 @@ function copyQRImage() {
       _fallbackDownloadQR(canvas); return;
     }
     navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
-      .then(() => alert('✅ Gambar QR berhasil disalin!\nSekarang paste ke WhatsApp Web, email, atau dokumen.'))
+      .then(() => showToast('✅ Gambar QR berhasil disalin! Paste ke WA Web / dokumen.'))
       .catch(() => _fallbackDownloadQR(canvas));
   }, 'image/png');
 }
@@ -1061,6 +1072,34 @@ function toggleTimeField(which) {
     input.value    = '';
   }
   saveGlobalConfig();
+}
+
+
+// ── Toast notification (menggantikan alert untuk pesan sukses) ────────────────
+function showToast(msg, type) {
+  type = type || 'success';
+  var toast = document.getElementById('admin-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'admin-toast';
+    var sty = 'position:fixed;top:1.2rem;right:1.2rem;z-index:9999;';
+    sty += 'padding:0.65rem 1.1rem;border-radius:8px;font-size:0.88rem;';
+    sty += 'font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,.18);';
+    sty += 'transition:opacity .3s ease;max-width:360px;pointer-events:none;display:none;';
+    toast.style.cssText = sty;
+    document.body.appendChild(toast);
+  }
+  var clr = {success:'#198754', warning:'#c97a00', info:'#0d6efd', danger:'#dc3545'};
+  toast.style.background = clr[type] || clr.success;
+  toast.style.color = 'white';
+  toast.textContent = msg;
+  toast.style.opacity = '1';
+  toast.style.display = 'block';
+  clearTimeout(toast._t);
+  toast._t = setTimeout(function() {
+    toast.style.opacity = '0';
+    setTimeout(function(){ toast.style.display = 'none'; }, 320);
+  }, 2800);
 }
 
 </script>
