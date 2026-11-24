@@ -1457,27 +1457,47 @@ function updateExamHeaders(cfg) {
   }
 }
 // ── Cek NIM di Google Sheets (doGet Apps Script) ────────────────────────────
-async function checkNimDiSheets(nim, examId, webhookUrl) {
-  // Gunakan POST (bukan GET) agar CORS tidak diblokir browser.
-  // doGet Apps Script gagal karena redirect cross-origin; doPost tidak redirect.
-  if (!webhookUrl || !examId) return { taken: false };
+// ── Klaim slot ujian: cek NIM sudah submit + daftarkan "sedang dikerjakan" ───
+// Apps Script (doPost) menangani type:'claim_exam' secara atomik dengan LockService.
+// Jika sukses: {claimed:true}  — soal boleh ditampilkan
+// Jika gagal:  {claimed:false} — device lain sudah mengklaim slot ini
+// Jika error:  {claimed:true}  — fallback aman (jangan blokir mahasiswa sah)
+async function claimExamSlot(nim, examId, dur, webhookUrl) {
+  if (!webhookUrl || !examId) return { claimed: true }; // fallback aman
   try {
     const ctrl  = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 8000);
+    const timer = setTimeout(() => ctrl.abort(), 9000);
     const res   = await fetch(webhookUrl, {
       method:  'POST',
       mode:    'cors',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body:    JSON.stringify({ type: 'check_nim', exam_id: examId, nim: nim }),
-      signal:  ctrl.signal
+      body:    JSON.stringify({
+        type:         'claim_exam',
+        exam_id:      examId,
+        nim:          nim,
+        max_duration: dur || 120   // durasi ujian (menit), untuk expire claim
+      }),
+      signal: ctrl.signal
     });
     clearTimeout(timer);
-    if (!res.ok) return { taken: false };
+    if (!res.ok) return { claimed: true }; // fallback aman
     return await res.json();
   } catch(e) {
-    console.warn('[SIUJI] NIM check gagal, ujian tetap dilanjutkan:', e.message);
-    return { taken: false };
+    console.warn('[SIUJI] Claim gagal, lanjut:', e.message);
+    return { claimed: true }; // fallback aman
   }
+}
+
+// ── Lepas klaim setelah ujian selesai/submit ──────────────────────────────────
+function releaseExamClaim(nim, examId, webhookUrl) {
+  if (!webhookUrl || !examId || !nim) return;
+  fetch(webhookUrl, {
+    method:   'POST',
+    mode:     'no-cors',           // fire-and-forget, tidak perlu baca respons
+    headers:  { 'Content-Type': 'text/plain;charset=utf-8' },
+    body:     JSON.stringify({ type: 'release_claim', exam_id: examId, nim: nim }),
+    keepalive: true
+  }).catch(function(){});
 }
 
 async function startExam() {
@@ -1533,10 +1553,12 @@ async function startExam() {
     if (startBtn) { startBtn.disabled = true; startBtn.innerHTML = '⏳ Memeriksa data...'; }
     errEl.style.display = 'none';
     try {
-      const chk = await checkNimDiSheets(nim, _ecfg.id, _ecfg.w);
-      if (chk.taken) {
-        errEl.textContent = '⛔ NIM ' + nim + ' sudah mengerjakan ujian ini sebelumnya ' +
-          '(mungkin di browser/device lain). Hubungi dosen jika ada kekeliruan.';
+      const chk = await claimExamSlot(nim, _ecfg.id, _ecfg.d, _ecfg.w);
+      if (chk.claimed === false) {
+        errEl.textContent = '⚠️ Ujian ini sudah dikerjakan atau sedang dikerjakan ' +
+          'di browser/device lain dengan NIM ' + nim + '. ' +
+          'Tutup semua sesi ujian lain lalu muat ulang halaman ini, ' +
+          'atau hubungi dosen jika ada kekeliruan.';
         errEl.style.display = 'block';
         examState.student = null;
         if (startBtn) { startBtn.disabled = false; startBtn.innerHTML = origTxt; }
@@ -1884,7 +1906,11 @@ function submitExam(autoSubmit) {
   examState.submitted   = true;
   examState.autoSubmit  = !!autoSubmit;
   hapusSesi();   // hapus sesi tersimpan — ujian sudah selesai
-  _markDone();   // [Fitur 1] tandai NIM+link sudah selesai — cegah pengerjaan ulang
+  _markDone();   // [Fitur 1] tandai NIM+link sudah selesai
+  // Lepas klaim 'sedang mengerjakan' agar error 'device lain' tidak muncul jika ujian dibuka lagi
+  if (examState.config && examState.student) {
+    releaseExamClaim(examState.student.nim, examState.config.id, examState.config.w);
+  } — cegah pengerjaan ulang
   if (examState.timerInterval) clearInterval(examState.timerInterval);
 
   // Notifikasi khusus jika dikumpulkan otomatis karena waktu habis
