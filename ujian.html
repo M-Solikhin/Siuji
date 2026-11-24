@@ -2282,9 +2282,19 @@ document.addEventListener('DOMContentLoaded', function () {
     var _mulaiStr = new Date(cfg.start).toLocaleString('id-ID',
       {day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
     var errEl3 = document.getElementById('error-msg');
+    var _j3  = cfg.j  || '';
+    var _mk3 = cfg.mk || '';
+    var _sb3 = (function() {
+      if (cfg.sbs && cfg.sbs.length > 0)
+        return cfg.sbs.map(function(pc){ return _formatSb(pc.sb); }).join(' & ');
+      return cfg.sb ? _formatSb(cfg.sb) : '';
+    })();
     if (errEl3) errEl3.innerHTML =
-      '⏳ Ujian belum dimulai.<br>' +
-      '<span style="font-size:0.85rem;font-weight:normal">Waktu mulai: ' + _mulaiStr + '</span>';
+      '⏳ <strong>Ujian belum dimulai.</strong>' +
+      (_j3 || _mk3
+        ? '<br><span style="font-size:0.9rem">' + [_j3, _mk3, _sb3].filter(Boolean).join(' &nbsp;·&nbsp; ') + '</span>'
+        : '') +
+      '<br><span style="font-size:0.82rem;font-weight:normal;color:#888">Waktu mulai: ' + _mulaiStr + '</span>';
     showScreen('screen-error');
     return;
   }
@@ -2292,9 +2302,19 @@ document.addEventListener('DOMContentLoaded', function () {
     var _expStr = new Date(cfg.exp).toLocaleString('id-ID',
       {day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
     var errEl4 = document.getElementById('error-msg');
+    var _jenisStr = cfg.j  || '';
+    var _mkStr    = cfg.mk || '';
+    var _sbStr    = (function() {
+      if (cfg.sbs && cfg.sbs.length > 0)
+        return cfg.sbs.map(function(pc){ return _formatSb(pc.sb); }).join(' & ');
+      return cfg.sb ? _formatSb(cfg.sb) : '';
+    })();
     if (errEl4) errEl4.innerHTML =
-      '⛔ Link ujian ini sudah berakhir.<br>' +
-      '<span style="font-size:0.85rem;font-weight:normal">Berakhir pada: ' + _expStr + '</span>';
+      '⛔ <strong>Link ujian ini sudah berakhir.</strong>' +
+      (_jenisStr || _mkStr
+        ? '<br><span style="font-size:0.9rem">' + [_jenisStr, _mkStr, _sbStr].filter(Boolean).join(' &nbsp;·&nbsp; ') + '</span>'
+        : '') +
+      '<br><span style="font-size:0.82rem;font-weight:normal;color:#888">Berakhir pada: ' + _expStr + '</span>';
     showScreen('screen-error');
     return;
   }
