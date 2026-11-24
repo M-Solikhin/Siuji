@@ -1205,16 +1205,18 @@ async function sha256(message) {
 
 // ─── State ujian ──────────────────────────────────────────────────────────────
 const examState = {
-  config:        null,
-  student:       null,
-  soal:          [],
-  answers:       {},
-  current:       0,
-  startTime:     null,
-  timerInterval: null,
-  violations:    [],
-  submitted:     false,  // [FIX BUG 2] flag: ujian sudah dikumpulkan
-  phase:         'identity'  // 'identity' | 'exam' | 'done'
+  config:         null,
+  student:        null,
+  soal:           [],
+  answers:        {},
+  current:        0,
+  startTime:      null,
+  timerInterval:  null,
+  violations:     [],
+  submitted:      false,  // flag: ujian sudah dikumpulkan
+  phase:          'identity',  // 'identity' | 'exam' | 'done'
+  deviceSwitches: 0,     // jumlah kali Ambil Alih terjadi (perpindahan device)
+  deviceIds:      []     // device ID unik yang pernah mengakses ujian ini
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -1548,7 +1550,7 @@ function autoLogoutTakenOver() {
 
 function debouncedSaveProgress() {
   if (_saveTimer) clearTimeout(_saveTimer);
-  _saveTimer = setTimeout(saveProgressNow, 2000);
+  _saveTimer = setTimeout(saveProgressNow, 800);
 }
 
 function saveProgressNow() {
@@ -1559,12 +1561,14 @@ function saveProgressNow() {
     method: 'POST', mode: 'no-cors',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
     body: JSON.stringify({
-      type:          'save_progress',
-      exam_id:       cfg.id,
-      nim:           st.nim,
-      session_token: examState.sessionToken,
-      answers:       examState.answers || {},
-      current:       examState.current || 0
+      type:           'save_progress',
+      exam_id:        cfg.id,
+      nim:            st.nim,
+      session_token:  examState.sessionToken,
+      answers:        examState.answers || {},
+      current:        examState.current || 0,
+      device_switches: examState.deviceSwitches || 0,
+      device_ids:     examState.deviceIds || []
     }),
     keepalive: true
   }).catch(function() {});
@@ -1580,6 +1584,19 @@ function releaseExamClaim(nim, examId, webhookUrl) {
     body:     JSON.stringify({ type: 'release_claim', exam_id: examId, nim: nim }),
     keepalive: true
   }).catch(function(){});
+}
+
+// ── Device ID persisten per-browser (untuk tracking perpindahan device) ────────
+function getDeviceId() {
+  var key = 'siuji_dev_id';
+  try {
+    var id = localStorage.getItem(key);
+    if (!id) {
+      id = 'dev_' + Math.random().toString(36).slice(2, 11);
+      localStorage.setItem(key, id);
+    }
+    return id;
+  } catch(e) { return 'dev_unknown'; }
 }
 
 async function startExam() {
@@ -1632,9 +1649,9 @@ async function startExam() {
   // Cek apakah ini RESUME dari sesi localStorage yang ada
   // Jika ada sesi tersimpan → skip claim check (device ini sudah punya hak akses)
   // Jika fresh start → lakukan claim check ke Google Sheets
-  const _hasSavedSession = !!(muatSesi && typeof muatSesi === 'function' && muatSesi());
   // Cek apakah ini Ambil Alih no-reload (klaim sudah dilakukan)
-  var _pendingClaim = null;
+  var _pendingClaim   = null;
+  var _serverProgress = null;   // progress dari server saat klaim berhasil
   try {
     var _acKey = 'siuji_ac_' + (_ecfg ? _ecfg.id : '') + '|' + nim;
     var _acRaw = localStorage.getItem(_acKey);
@@ -1682,19 +1699,10 @@ async function startExam() {
       }
       // Simpan session token untuk polling
       examState.sessionToken = chk.session_token || '';
-      // Muat progress tersimpan (dari device lain via Ambil Alih)
-      (function() {
-        try {
-          var pendingKey = 'siuji_pending_progress_' + _ecfg.id + '|' + nim;
-          var pending = localStorage.getItem(pendingKey);
-          if (pending) {
-            var pg = JSON.parse(pending);
-            if (pg.answers) examState.answers = pg.answers;
-            if (typeof pg.current === 'number') examState.current = pg.current;
-            localStorage.removeItem(pendingKey);
-          }
-        } catch(e) {}
-      })();
+      // Tangkap progress dari server — diterapkan setelah reset di bawah
+      if (chk.saved_progress && Object.keys(chk.saved_progress.answers || {}).length > 0) {
+        _serverProgress = chk.saved_progress;
+      }
     } catch(e) {
       console.warn('[SIUJI] Claim check gagal, lanjut:', e.message);
     }
@@ -1704,12 +1712,29 @@ async function startExam() {
     examState.sessionToken = _pendingClaim.token || '';
   }
 
-  examState.answers    = {};
-  examState.current    = 0;
-  // Restore progress dari Ambil Alih no-reload
+  examState.answers        = {};
+  examState.current        = 0;
+  examState.deviceSwitches = 0;
+  examState.deviceIds      = [];
+  // Prioritas restore: (1) Ambil Alih no-reload > (2) server progress > (3) popup localStorage
   if (_pendingClaim && _pendingClaim.progress) {
-    if (_pendingClaim.progress.answers) examState.answers = _pendingClaim.progress.answers;
-    if (typeof _pendingClaim.progress.current === 'number') examState.current = _pendingClaim.progress.current;
+    var pcp = _pendingClaim.progress;
+    // Ambil Alih: progress dari klaim paksa sebelumnya
+    if (pcp.answers) examState.answers = pcp.answers;
+    if (typeof pcp.current === 'number') examState.current = pcp.current;
+    examState.deviceSwitches = (pcp.device_switches || 0) + 1;
+    examState.deviceIds      = (pcp.device_ids      || []).concat([getDeviceId()]);
+  } else if (_serverProgress) {
+    var sp = _serverProgress;
+    // Device kembali setelah diambil alih: ini juga satu Ambil Alih
+    examState.answers        = sp.answers || {};
+    if (typeof sp.current === 'number') examState.current = sp.current;
+    examState.deviceSwitches = (sp.device_switches || 0) + 1;
+    examState.deviceIds      = (sp.device_ids      || []).concat([getDeviceId()]);
+    hapusSesi();  // hapus sesi localStorage stale agar popup resume tidak tampil dengan data lama
+  } else {
+    // Fresh start: device pertama
+    examState.deviceIds = [getDeviceId()];
   }
   examState.startTime  = Date.now();
   examState.violations = [];
@@ -2112,10 +2137,23 @@ function showRecap(details, benar, salah, kosong, total, skor) {
   const ringanViols = examState.violations.filter(function (v) { return v.type === 'tab_switch_singkat'; });
   const violEl = document.getElementById('recap-violations');
   if (violEl) {
-    if (beratViols.length === 0 && ringanViols.length === 0) {
-      violEl.innerHTML = '<div class="alert alert-success py-2 small mb-2">✅ Tidak ada perpindahan tab terdeteksi.</div>';
+    var html = '';
+
+    // ── Blok perpindahan device ─────────────────────────────────────────────
+    var dSwitches = examState.deviceSwitches || 0;
+    var dCount    = new Set(examState.deviceIds || []).size || 1;
+    if (dSwitches === 0) {
+      html += '<div class="alert alert-success py-2 small mb-2">📱 Tidak ada perpindahan device.</div>';
     } else {
-      var html = '';
+      html += '<div class="alert alert-warning py-2 small mb-1">' +
+        '📱 Perpindahan device: <strong>' + dSwitches + 'x</strong>' +
+        ' — <strong>' + dCount + ' device</strong> berbeda digunakan</div>';
+    }
+
+    // ── Blok pelanggaran tab ────────────────────────────────────────────────
+    if (beratViols.length === 0 && ringanViols.length === 0) {
+      html += '<div class="alert alert-success py-2 small mb-2">✅ Tidak ada perpindahan tab terdeteksi.</div>';
+    } else {
       if (beratViols.length > 0) {
         const totalDtk = beratViols.reduce(function (s, v) { return s + (v.durasi_detik||0); }, 0);
         const badges = beratViols.map(function (v, i) {
@@ -2133,8 +2171,8 @@ function showRecap(details, benar, salah, kosong, total, skor) {
           ringanViols.length + 'x</strong></div>' +
           '<div class="mb-2">' + badges2 + '</div>';
       }
-      violEl.innerHTML = html;
     }
+    violEl.innerHTML = html;
   }
 
   // ── Mode rekap: tampilkan jawaban lengkap hanya jika cfg.sk === true ──────────
@@ -2244,7 +2282,9 @@ async function sendWebhook(details, benar, salah, kosong, total, skor) {
     pel_berat:      pelBeratList.length,
     pel_ringan:     pelRinganList.length,
     answers:        details,
-    violations:     examState.violations
+    violations:     examState.violations,
+    device_switches: examState.deviceSwitches || 0,
+    device_count:   new Set(examState.deviceIds || []).size || 1
   };
 
   try {
