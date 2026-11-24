@@ -1457,129 +1457,27 @@ function updateExamHeaders(cfg) {
   }
 }
 // ── Cek NIM di Google Sheets (doGet Apps Script) ────────────────────────────
-// ── Klaim slot ujian: cek NIM sudah submit + daftarkan "sedang dikerjakan" ───
-// Apps Script (doPost) menangani type:'claim_exam' secara atomik dengan LockService.
-// Jika sukses: {claimed:true}  — soal boleh ditampilkan
-// Jika gagal:  {claimed:false} — device lain sudah mengklaim slot ini
-// Jika error:  {claimed:true}  — fallback aman (jangan blokir mahasiswa sah)
-async function claimExamSlot(nim, examId, dur, webhookUrl, force) {
-  if (!webhookUrl || !examId) return { claimed: true }; // fallback aman
+async function checkNimDiSheets(nim, examId, webhookUrl) {
+  // Gunakan POST (bukan GET) agar CORS tidak diblokir browser.
+  // doGet Apps Script gagal karena redirect cross-origin; doPost tidak redirect.
+  if (!webhookUrl || !examId) return { taken: false };
   try {
     const ctrl  = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 9000);
+    const timer = setTimeout(() => ctrl.abort(), 8000);
     const res   = await fetch(webhookUrl, {
       method:  'POST',
       mode:    'cors',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body:    JSON.stringify({
-        type:         'claim_exam',
-        exam_id:      examId,
-        nim:          nim,
-        max_duration: dur || 120,
-          force: !!force
-      }),
-      signal: ctrl.signal
+      body:    JSON.stringify({ type: 'check_nim', exam_id: examId, nim: nim }),
+      signal:  ctrl.signal
     });
     clearTimeout(timer);
-    if (!res.ok) return { claimed: true }; // fallback aman
+    if (!res.ok) return { taken: false };
     return await res.json();
   } catch(e) {
-    console.warn('[SIUJI] Claim gagal, lanjut:', e.message);
-    return { claimed: true }; // fallback aman
+    console.warn('[SIUJI] NIM check gagal, ujian tetap dilanjutkan:', e.message);
+    return { taken: false };
   }
-}
-
-
-// ══════════════════════════════════════════════════════════════════════════════
-//  SESSION POLLING & MULTI-DEVICE SYNC (v33 — tanpa _proceedToExam)
-// ══════════════════════════════════════════════════════════════════════════════
-const POLL_INTERVAL = 10000;
-var _pollTimer = null;
-var _saveTimer = null;
-
-function startSessionPolling() {
-  stopSessionPolling();
-  if (!examState.config || !examState.config.w || !examState.sessionToken) return;
-  _pollTimer = setInterval(function() {
-    var cfg = examState.config;
-    var st  = examState.student;
-    if (!cfg || !st) return;
-    fetch(cfg.w, {
-      method: 'POST', mode: 'cors',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({
-        type: 'check_session',
-        exam_id: cfg.id,
-        nim: st.nim,
-        session_token: examState.sessionToken
-      }),
-      keepalive: true
-    }).then(function(r) {
-      if (!r.ok) return;
-      return r.json();
-    }).then(function(data) {
-      if (data && data.active === false) {
-        autoLogoutTakenOver();
-      }
-    }).catch(function() { /* abaikan */ });
-  }, POLL_INTERVAL);
-}
-
-function stopSessionPolling() {
-  if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
-}
-
-function autoLogoutTakenOver() {
-  stopSessionPolling();
-  if (_saveTimer) { clearTimeout(_saveTimer); _saveTimer = null; }
-  saveProgressNow();
-  examState.phase = 'done';
-  document.body.insertAdjacentHTML('beforeend',
-    '<div id="takeover-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,.85);' +
-    'display:flex;align-items:center;justify-content:center;z-index:99999;' +
-    'color:#fff;text-align:center;padding:2rem">' +
-    '<div><div style="font-size:3rem">&#9888;</div>' +
-    '<h3>Sesi Diambil Alih Device Lain</h3>' +
-    '<p>Jawaban Anda tersimpan. Muat ulang halaman untuk klaim kembali.</p>' +
-    '<button onclick="location.reload()" class="btn btn-warning">Muat Ulang &amp; Klaim Kembali</button>' +
-    '</div></div>'
-  );
-}
-
-function debouncedSaveProgress() {
-  if (_saveTimer) clearTimeout(_saveTimer);
-  _saveTimer = setTimeout(saveProgressNow, 2000);
-}
-
-function saveProgressNow() {
-  var cfg = examState.config;
-  var st  = examState.student;
-  if (!cfg || !cfg.w || !cfg.id || !st || !st.nim || !examState.sessionToken) return;
-  fetch(cfg.w, {
-    method: 'POST', mode: 'no-cors',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({
-      type:          'save_progress',
-      exam_id:       cfg.id,
-      nim:           st.nim,
-      session_token: examState.sessionToken,
-      answers:       examState.answers || {},
-      current:       examState.current || 0
-    }),
-    keepalive: true
-  }).catch(function() {});
-}
-
-// ── Lepas klaim setelah ujian selesai/submit ──────────────────────────────────
-function releaseExamClaim(nim, examId, webhookUrl) {
-  if (!webhookUrl || !examId || !nim) return;
-  fetch(webhookUrl, {
-    method:   'POST',
-    mode:     'no-cors',           // fire-and-forget, tidak perlu baca respons
-    headers:  { 'Content-Type': 'text/plain;charset=utf-8' },
-    body:     JSON.stringify({ type: 'release_claim', exam_id: examId, nim: nim }),
-    keepalive: true
-  }).catch(function(){});
 }
 
 async function startExam() {
@@ -1629,65 +1527,23 @@ async function startExam() {
 
   // ── [Fitur 2] Cek NIM di Google Sheets (lintas browser/device) ────────────
   const _ecfg = examState.config;  // cfg tidak accessible di scope ini
-  // Cek apakah ini RESUME dari sesi localStorage yang ada
-  // Jika ada sesi tersimpan → skip claim check (device ini sudah punya hak akses)
-  // Jika fresh start → lakukan claim check ke Google Sheets
-  const _hasSavedSession = !!(muatSesi && typeof muatSesi === 'function' && muatSesi());
-  if (!_hasSavedSession && _ecfg && _ecfg.w && _ecfg.id) {
+  if (_ecfg && _ecfg.w && _ecfg.id) {
     const startBtn = document.querySelector('#screen-identity .btn-primary');
     const origTxt  = startBtn ? startBtn.innerHTML : '';
     if (startBtn) { startBtn.disabled = true; startBtn.innerHTML = '⏳ Memeriksa data...'; }
     errEl.style.display = 'none';
     try {
-      const chk = await claimExamSlot(nim, _ecfg.id, _ecfg.d, _ecfg.w, false);
-      if (chk.claimed === false) {
-        // Tampilkan opsi Ambil Alih
-        errEl.innerHTML = '<strong>⚠️ Sesi Aktif di Browser/Device Lain</strong><br>' +
-          'NIM <strong>' + nim + '</strong> sedang mengerjakan ujian ini di tempat lain.<br>' +
-          '<div class="mt-2 d-flex gap-2">' +
-          '<button id="btn-to" class="btn btn-warning btn-sm">Ambil Alih ke Device Ini</button>' +
-          '<button id="btn-cc" class="btn btn-secondary btn-sm">Batal</button></div>';
+      const chk = await checkNimDiSheets(nim, _ecfg.id, _ecfg.w);
+      if (chk.taken) {
+        errEl.textContent = '⛔ NIM ' + nim + ' sudah mengerjakan ujian ini sebelumnya ' +
+          '(mungkin di browser/device lain). Hubungi dosen jika ada kekeliruan.';
         errEl.style.display = 'block';
         examState.student = null;
         if (startBtn) { startBtn.disabled = false; startBtn.innerHTML = origTxt; }
-        const _bTO2 = document.getElementById('btn-to');
-        const _bCC2 = document.getElementById('btn-cc');
-        if (_bCC2) _bCC2.onclick = function() { errEl.style.display='none'; };
-        if (_bTO2) _bTO2.onclick = async function() {
-          _bTO2.disabled=true; _bTO2.textContent='Mengambil alih...';
-          const f2 = await claimExamSlot(nim, _ecfg.id, _ecfg.d, _ecfg.w, true);
-          if (f2.claimed) {
-            // Simpan data progress ke examState.savedProgress untuk dimuat setelah reload
-            if (f2.saved_progress) {
-              try { localStorage.setItem('siuji_pending_progress_' + _ecfg.id + '|' + nim,
-                JSON.stringify(f2.saved_progress)); } catch(e) {}
-            }
-            errEl.textContent = 'Klaim berhasil. Halaman akan dimuat ulang...';
-            setTimeout(function() { location.reload(); }, 1200);
-          } else {
-            errEl.textContent = 'Gagal mengambil alih. Coba lagi atau hubungi dosen.';
-            _bTO2.disabled=false; _bTO2.textContent='Ambil Alih ke Device Ini';
-          }
-        };
         return;
       }
-      // Simpan session token untuk polling
-      examState.sessionToken = chk.session_token || '';
-      // Muat progress tersimpan (dari device lain via Ambil Alih)
-      (function() {
-        try {
-          var pendingKey = 'siuji_pending_progress_' + _ecfg.id + '|' + nim;
-          var pending = localStorage.getItem(pendingKey);
-          if (pending) {
-            var pg = JSON.parse(pending);
-            if (pg.answers) examState.answers = pg.answers;
-            if (typeof pg.current === 'number') examState.current = pg.current;
-            localStorage.removeItem(pendingKey);
-          }
-        } catch(e) {}
-      })();
     } catch(e) {
-      console.warn('[SIUJI] Claim check gagal, lanjut:', e.message);
+      console.warn('[SIUJI] NIM check Sheets gagal, lanjut tanpa cek:', e.message);
     }
     if (startBtn) { startBtn.disabled = false; startBtn.innerHTML = origTxt; }
   }
@@ -1784,10 +1640,9 @@ async function startExam() {
   examState.phase = 'exam';
   showScreen('screen-exam');
   renderNav();
-  renderSoal(examState.current);
+  renderSoal(examState.current);   // mulai dari soal terakhir (0 jika baru)
   startTimer();
   setupAntiCheat();
-  startSessionPolling();
 }
 
 // ─── Navigasi soal ────────────────────────────────────────────────────────────
@@ -1847,8 +1702,7 @@ function renderSoal(idx) {
   container.querySelectorAll('input[type=radio]').forEach(function (radio) {
     radio.addEventListener('change', function () {
       examState.answers[idx] = radio.dataset.key;
-      simpanSesi();
-      debouncedSaveProgress();   // auto-save ke localStorage setiap jawaban berubah
+      simpanSesi();   // auto-save ke localStorage setiap jawaban berubah
       // Update visual: hapus semua .selected lalu tambah ke label yang dipilih
       container.querySelectorAll('label.option-btn').forEach(function (lbl) {
         lbl.classList.remove('selected');
@@ -2030,11 +1884,7 @@ function submitExam(autoSubmit) {
   examState.submitted   = true;
   examState.autoSubmit  = !!autoSubmit;
   hapusSesi();   // hapus sesi tersimpan — ujian sudah selesai
-  _markDone();   // [Fitur 1] tandai NIM+link sudah selesai
-  stopSessionPolling();
-  if (examState.config && examState.student) {
-    releaseExamClaim(examState.student.nim, examState.config.id, examState.config.w);
-  } — cegah pengerjaan ulang
+  _markDone();   // [Fitur 1] tandai NIM+link sudah selesai — cegah pengerjaan ulang
   if (examState.timerInterval) clearInterval(examState.timerInterval);
 
   // Notifikasi khusus jika dikumpulkan otomatis karena waktu habis
