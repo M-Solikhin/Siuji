@@ -1281,19 +1281,8 @@ function _applyEditWaktu(id) {
   const modal = document.getElementById('lm-edit-modal');
   if (modal) modal.remove();
 
-  // Tampilkan URL baru
-  const expStr = expVal ? new Date(expVal).toLocaleString('id-ID') : 'tidak ada batas';
-  showToast('✅ Waktu diperbarui. Bagikan link baru ke mahasiswa.', 'success');
+  showToast('✅ Waktu diperbarui. Gunakan tombol Salin Link / Salin QR untuk membagikan.', 'success');
   renderLinkManager();
-
-  // Langsung tampilkan URL baru untuk disalin
-  setTimeout(() => {
-    const copied = prompt(
-      'Link baru dengan waktu yang diperbarui:\n' +
-      '(Berakhir: ' + expStr + ')\n\nSalin link di bawah:',
-      newUrl
-    );
-  }, 500);
 }
 
 // ── Toast notification (menggantikan alert untuk pesan sukses) ────────────────
