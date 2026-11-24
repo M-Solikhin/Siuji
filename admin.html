@@ -323,20 +323,24 @@
   
 <!-- ═══ LINK MANAGER ══════════════════════════════════════════════════════════ -->
 <div class="card shadow-sm mt-4" id="linkManagerCard" style="display:none">
-  <div class="card-header d-flex justify-content-between align-items-center py-2">
+  <div class="card-header d-flex justify-content-between align-items-center py-2 flex-wrap gap-2">
     <span class="fw-semibold">📋 Riwayat Link Ujian</span>
-    <button class="btn btn-sm btn-outline-danger" onclick="clearLinkHistory()">🗑 Hapus Semua Riwayat</button>
+    <div class="d-flex gap-2">
+      <button id="lm-del-sel" class="btn btn-sm btn-danger d-none" onclick="lmDeleteSelected()">🗑 Hapus Terpilih</button>
+      <button class="btn btn-sm btn-outline-danger" onclick="clearLinkHistory()">🗑 Hapus Semua Riwayat</button>
+    </div>
   </div>
   <div class="table-responsive">
     <table class="table table-sm table-hover mb-0">
       <thead class="table-light">
         <tr>
+          <th style="width:2rem" class="text-center"><input type="checkbox" id="lm-chk-all" class="form-check-input" onclick="lmToggleSelectAll(this)" title="Pilih semua"></th>
           <th style="width:2.5rem">#</th>
           <th>Label & MK</th>
           <th>Sub-bab (soal)</th>
           <th>Dibuat</th>
           <th style="width:6rem">Status</th>
-          <th style="width:11rem">Aksi</th>
+          <th style="width:14rem">Aksi</th>
         </tr>
       </thead>
       <tbody id="lmTableBody"></tbody>
@@ -786,7 +790,8 @@ function renderLinkManager() {
     const blockBtn = lk.blocked
       ? `<button class="btn btn-xs btn-outline-success" onclick="toggleBlockLink('${lk.id}')" title="Aktifkan kembali">✓ Aktifkan</button>`
       : `<button class="btn btn-xs btn-outline-danger"  onclick="toggleBlockLink('${lk.id}')" title="Blokir link">🔒 Blokir</button>`;
-    return `<tr class="${lk.blocked ? 'table-secondary text-muted' : ''}">
+    return `<tr class="${lk.blocked ? 'table-secondary text-muted' : ''}" data-id="${lk.id}">
+      <td class="text-center"><input type="checkbox" class="lm-row-chk form-check-input" data-id="${lk.id}" onclick="lmUpdateBulkBtn()"></td>
       <td class="text-muted small">${hist.length - i}</td>
       <td><strong>${lk.label || '—'}</strong><br><small class="text-muted">${lk.mk || ''}</small></td>
       <td class="small">${sbLabel}</td>
@@ -794,13 +799,15 @@ function renderLinkManager() {
       <td>${badge}</td>
       <td>
         <div class="d-flex gap-1 align-items-center flex-wrap">
-          <button class="btn btn-xs btn-outline-primary" onclick="copyLinkHistory('${lk.id}')" title="Salin link">📋 Salin</button>
+          <button class="btn btn-xs btn-outline-primary" onclick="copyLinkHistory('${lk.id}')" title="Salin link teks">📋 Salin Link</button>
+          <button class="btn btn-xs btn-outline-info"    onclick="copyQRForLink('${lk.id}')"  title="Salin gambar QR">🖼️ Salin QR</button>
           ${blockBtn}
           <span id="lm-st-${lk.id}" class="small ms-1"></span>
         </div>
       </td>
     </tr>`;
   }).join('');
+  lmUpdateBulkBtn();
 }
 
 function copyLinkHistory(id) {
@@ -812,7 +819,12 @@ function copyLinkHistory(id) {
 }
 
 function clearLinkHistory() {
-  if (!confirm('Hapus semua riwayat link?\n(Ini TIDAK memblokir link yang sudah dibagikan — hanya menghapus catatan lokal)')) return;
+  if (!confirm('Hapus SEMUA riwayat link?\n\n'
+    + 'Catatan penting:\n'
+    + '• Ini hanya menghapus catatan di browser ini.\n'
+    + '• Link yang sudah dibagikan TIDAK diblokir.\n'
+    + '• Mahasiswa yang memegang link lama masih bisa mengaksesnya.\n'
+    + '• Gunakan tombol 🔒 Blokir untuk menonaktifkan link.')) return;
   localStorage.removeItem(LM_KEY);
   renderLinkManager();
 }
@@ -1080,6 +1092,95 @@ function toggleTimeField(which) {
   saveGlobalConfig();
 }
 
+
+// ── Link Manager: Checkbox + Hapus Terpilih ──────────────────────────────────
+function lmToggleSelectAll(cb) {
+  document.querySelectorAll('.lm-row-chk').forEach(function(c) { c.checked = cb.checked; });
+  lmUpdateBulkBtn();
+}
+
+function lmUpdateBulkBtn() {
+  const checked = document.querySelectorAll('.lm-row-chk:checked').length;
+  const btn = document.getElementById('lm-del-sel');
+  const all = document.getElementById('lm-chk-all');
+  if (btn) btn.classList.toggle('d-none', checked === 0);
+  if (btn && checked > 0) btn.textContent = '\uD83D\uDDD1 Hapus Terpilih (' + checked + ')';
+  // Update select-all indeterminate state
+  if (all) {
+    const total = document.querySelectorAll('.lm-row-chk').length;
+    all.indeterminate = checked > 0 && checked < total;
+    all.checked = total > 0 && checked === total;
+  }
+}
+
+function lmDeleteSelected() {
+  const selected = Array.from(document.querySelectorAll('.lm-row-chk:checked'))
+    .map(function(c) { return c.dataset.id; });
+  if (selected.length === 0) return;
+  if (!confirm('Hapus ' + selected.length + ' catatan terpilih?\n\n'
+    + 'Catatan penting:\n'
+    + '\u2022 Ini hanya menghapus catatan di browser ini.\n'
+    + '\u2022 Link yang sudah dibagikan TIDAK diblokir.\n'
+    + '\u2022 Gunakan tombol \uD83D\uDD12 Blokir untuk menonaktifkan link.')) return;
+  const hist = getLinkHistory().filter(function(lk) {
+    return !selected.includes(lk.id);
+  });
+  setLinkHistory(hist);
+  renderLinkManager();
+  showToast('\u2705 ' + selected.length + ' catatan dihapus.', 'success');
+}
+
+// ── Salin QR untuk link tertentu (generate on-demand) ────────────────────────
+function copyQRForLink(id) {
+  const lk = getLinkHistory().find(function(h) { return h.id === id; });
+  if (!lk || !lk.url) { showToast('Link tidak ditemukan', 'warning'); return; }
+  if (typeof QRCode === 'undefined') {
+    showToast('\u26A0\uFE0F Library QR belum dimuat. Coba generate link baru dulu.', 'warning'); return;
+  }
+  const _fmtSbQR = function(sb) { return sb && sb.startsWith('PBM.') ? 'Pemodelan ' + sb.slice(4) : (sb || ''); };
+  const fmtDT = function(d) {
+    return d.toLocaleDateString('id-ID',{day:'2-digit',month:'2-digit',year:'numeric'}) + ' '
+      + d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+  };
+  const sbLine = lk.sbs
+    ? lk.sbs.map(function(s) { return _fmtSbQR(s.sb) + '(' + s.n + ')'; }).join(', ')
+    : (_fmtSbQR(lk.sb) || '');
+  const lines = [
+    lk.label || '',
+    lk.mk || '',
+    'Sub-bab: ' + sbLine,
+    (lk.n || '') + ' soal | Durasi: ' + (lk.d > 0 ? lk.d + ' mnt' : 'tanpa batas'),
+    'Dibuat: ' + fmtDT(new Date(lk.ts || Date.now()))
+  ].filter(Boolean).join('\n');
+  const statusEl = document.getElementById('lm-st-' + id);
+  if (statusEl) { statusEl.textContent = '\u23F3'; }
+  generateQRCanvas(lk.url, lines, function(canvas) {
+    canvas.toBlob(function(blob) {
+      if (!blob) { showToast('Gagal generate QR', 'danger'); return; }
+      if (!navigator.clipboard || !window.ClipboardItem) {
+        // Fallback: unduh
+        const a = document.createElement('a');
+        a.href = canvas.toDataURL('image/png');
+        a.download = 'qr-' + (lk.label||'link').toLowerCase().replace(/[^a-z0-9]+/g,'-') + '.png';
+        a.click();
+        showToast('\u2705 QR diunduh (clipboard tidak didukung browser ini)', 'info');
+        return;
+      }
+      navigator.clipboard.write([new ClipboardItem({'image/png': blob})])
+        .then(function() {
+          showToast('\u2705 Gambar QR berhasil disalin!', 'success');
+          if (statusEl) { statusEl.textContent = '\u2713'; setTimeout(function(){statusEl.textContent='';}, 2000); }
+        })
+        .catch(function() {
+          const a = document.createElement('a');
+          a.href = canvas.toDataURL('image/png');
+          a.download = 'qr-' + (lk.label||'link').toLowerCase().replace(/[^a-z0-9]+/g,'-') + '.png';
+          a.click();
+          showToast('Copy gambar tidak didukung — QR diunduh', 'info');
+        });
+    }, 'image/png');
+  });
+}
 
 // ── Toast notification (menggantikan alert untuk pesan sukses) ────────────────
 function showToast(msg, type) {
