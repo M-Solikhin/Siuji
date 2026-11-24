@@ -1633,7 +1633,14 @@ async function startExam() {
   // Jika ada sesi tersimpan → skip claim check (device ini sudah punya hak akses)
   // Jika fresh start → lakukan claim check ke Google Sheets
   const _hasSavedSession = !!(muatSesi && typeof muatSesi === 'function' && muatSesi());
-  if (!_hasSavedSession && _ecfg && _ecfg.w && _ecfg.id) {
+  // Cek apakah ini Ambil Alih no-reload (klaim sudah dilakukan)
+  var _pendingClaim = null;
+  try {
+    var _acKey = 'siuji_ac_' + (_ecfg ? _ecfg.id : '') + '|' + nim;
+    var _acRaw = localStorage.getItem(_acKey);
+    if (_acRaw) { _pendingClaim = JSON.parse(_acRaw); localStorage.removeItem(_acKey); }
+  } catch(e) {}
+  if (!_hasSavedSession && !_pendingClaim && _ecfg && _ecfg.w && _ecfg.id) {
     const startBtn = document.querySelector('#screen-identity .btn-primary');
     const origTxt  = startBtn ? startBtn.innerHTML : '';
     if (startBtn) { startBtn.disabled = true; startBtn.innerHTML = '⏳ Memeriksa data...'; }
@@ -1657,13 +1664,15 @@ async function startExam() {
           _bTO2.disabled=true; _bTO2.textContent='Mengambil alih...';
           const f2 = await claimExamSlot(nim, _ecfg.id, _ecfg.d, _ecfg.w, true);
           if (f2.claimed) {
-            // Simpan data progress ke examState.savedProgress untuk dimuat setelah reload
-            if (f2.saved_progress) {
-              try { localStorage.setItem('siuji_pending_progress_' + _ecfg.id + '|' + nim,
-                JSON.stringify(f2.saved_progress)); } catch(e) {}
-            }
-            errEl.textContent = 'Klaim berhasil. Halaman akan dimuat ulang...';
-            setTimeout(function() { location.reload(); }, 1200);
+            // No-reload: simpan klaim ke localStorage lalu panggil startExam() langsung
+            try {
+              localStorage.setItem('siuji_ac_' + _ecfg.id + '|' + nim, JSON.stringify({
+                token:    f2.session_token || '',
+                progress: f2.saved_progress || null
+              }));
+            } catch(e) {}
+            errEl.textContent = 'Klaim berhasil. Memuat soal ujian...';
+            setTimeout(function() { startExam(); }, 300);
           } else {
             errEl.textContent = 'Gagal mengambil alih. Coba lagi atau hubungi dosen.';
             _bTO2.disabled=false; _bTO2.textContent='Ambil Alih ke Device Ini';
@@ -1690,10 +1699,18 @@ async function startExam() {
       console.warn('[SIUJI] Claim check gagal, lanjut:', e.message);
     }
     if (startBtn) { startBtn.disabled = false; startBtn.innerHTML = origTxt; }
+  } else if (_pendingClaim) {
+    // Ambil Alih no-reload: pakai token dari klaim yang sudah dilakukan
+    examState.sessionToken = _pendingClaim.token || '';
   }
 
   examState.answers    = {};
   examState.current    = 0;
+  // Restore progress dari Ambil Alih no-reload
+  if (_pendingClaim && _pendingClaim.progress) {
+    if (_pendingClaim.progress.answers) examState.answers = _pendingClaim.progress.answers;
+    if (typeof _pendingClaim.progress.current === 'number') examState.current = _pendingClaim.progress.current;
+  }
   examState.startTime  = Date.now();
   examState.violations = [];
   examState.submitted  = false;
@@ -1911,16 +1928,16 @@ function setupAntiCheat() {
     // ── Deteksi upaya tangkapan layar ──────────────────────────────────────────
     if (!examState.submitted && examState.phase === 'exam') {
       var ssKey = '';
-      if (e.key === 'PrintScreen')   ssKey = 'PrintScreen';
-      else if (e.ctrlKey && k === 'P') ssKey = 'Ctrl+P';
+      if      (e.key === 'PrintScreen' && !e.altKey)       ssKey = 'PrintScreen';
+      else if (e.key === 'PrintScreen' && e.altKey)        ssKey = 'Alt+PrintScreen';
+      else if (e.ctrlKey && k === 'P')                     ssKey = 'Ctrl+P';
+      else if (e.metaKey && k === 'P')                     ssKey = 'Cmd+P';
+      else if (e.metaKey && e.shiftKey && k === 'S')       ssKey = 'Cmd+Shift+S';
       if (ssKey) {
         e.preventDefault();
-        examState.violations.push({
-          type: 'screenshot_attempt',
-          time: new Date().toISOString(),
-          key:  ssKey
-        });
-        showViolationWarning('📸 Dicatat — upaya tangkapan layar terdeteksi.');
+        examState.violations.push({ type: 'screenshot_attempt', time: new Date().toISOString(), key: ssKey });
+        var _nSS = examState.violations.filter(function(v){ return v.type !== 'tab_switch_singkat'; }).length;
+        showViolationWarning('⛔ DICATAT — Shortcut terlarang: ' + ssKey + ' | Total pelanggaran: ' + _nSS);
       }
     }
   }, true);
@@ -1951,8 +1968,9 @@ function setupAntiCheat() {
             time: new Date().toISOString(),
             durasi_detik: durasi
           });
+          var _nTab = examState.violations.filter(function(v){ return v.type !== 'tab_switch_singkat'; }).length;
           showViolationWarning(
-            '⚠️ DICATAT — Anda meninggalkan halaman ujian selama ' + durasi + ' detik.'
+            '⚠️ DICATAT: Anda meninggalkan halaman ' + durasi + ' detik | Total pelanggaran: ' + _nTab
           );
         } else if (durasi > 0) {
           // RINGAN: tetap dicatat tapi ditandai singkat
@@ -2383,7 +2401,11 @@ document.addEventListener('DOMContentLoaded', function () {
   const waEl = document.getElementById('f-wa');
   if (waEl) {
     waEl.addEventListener('input', function () {
-      this.value = this.value.replace(/\D/g, '').slice(0, 15);
+      var val = this.value.replace(/\D/g, '').slice(0, 15);
+      // Enforce prefix 08
+      if (val.length >= 1 && val[0] !== '0') val = '0' + val;
+      if (val.length >= 2 && val[1] !== '8') val = val[0] + '8' + val.slice(2);
+      this.value = val;
     });
   }
 });
