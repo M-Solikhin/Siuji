@@ -801,6 +801,7 @@ function renderLinkManager() {
         <div class="d-flex gap-1 align-items-center flex-wrap">
           <button class="btn btn-xs btn-outline-primary" onclick="copyLinkHistory('${lk.id}')" title="Salin link teks">📋 Salin Link</button>
           <button class="btn btn-xs btn-outline-info"    onclick="copyQRForLink('${lk.id}')"  title="Salin gambar QR">🖼️ Salin QR</button>
+          <button class="btn btn-xs btn-outline-warning"  onclick="editWaktuLink('${lk.id}')" title="Edit waktu mulai/berakhir">⏰ Edit Waktu</button>
           ${blockBtn}
           <span id="lm-st-${lk.id}" class="small ms-1"></span>
         </div>
@@ -1189,6 +1190,110 @@ function copyQRForLink(id) {
         });
     }, 'image/png');
   });
+}
+
+// ── Edit Waktu Mulai / Berakhir dari link yang sudah ada ─────────────────────
+function editWaktuLink(id) {
+  const lk = getLinkHistory().find(h => h.id === id);
+  if (!lk || !lk.url) { showToast('Link tidak ditemukan', 'warning'); return; }
+
+  // Decode config dari URL
+  let cfg;
+  try {
+    const hash  = lk.url.includes('#config=') ? lk.url.split('#config=')[1] : '';
+    cfg = JSON.parse(atob(decodeURIComponent(hash)));
+  } catch(e) { showToast('Gagal decode URL link', 'danger'); return; }
+
+  // Helper format datetime-local value
+  const toISO = d => {
+    const p = n => String(n).padStart(2,'0');
+    return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+  };
+
+  // Nilai saat ini
+  const curStart = cfg.start ? toISO(new Date(cfg.start)) : '';
+  const curExp   = cfg.exp   ? toISO(new Date(cfg.exp))   : '';
+
+  // Buat modal
+  const modalHtml = `
+    <div id="lm-edit-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.5);
+      z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem">
+      <div style="background:#fff;border-radius:12px;padding:1.5rem;width:100%;max-width:420px;box-shadow:0 8px 32px rgba(0,0,0,.2)">
+        <h6 class="fw-bold mb-3">⏰ Edit Waktu Link <small class="text-muted">${lk.label || ''}</small></h6>
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">Waktu Mulai <span class="text-muted">(kosong = aktif langsung)</span></label>
+          <input type="datetime-local" id="lm-edit-start" class="form-control form-control-sm" value="${curStart}">
+        </div>
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">Waktu Berakhir <span class="text-muted">(kosong = tidak ada batas)</span></label>
+          <input type="datetime-local" id="lm-edit-exp" class="form-control form-control-sm" value="${curExp}">
+          <div class="d-flex gap-2 mt-1">
+            <button class="btn btn-xs btn-outline-secondary" onclick="document.getElementById('lm-edit-exp').value=_toLocalISO(new Date(Date.now()+3*3600000))">+3 jam</button>
+            <button class="btn btn-xs btn-outline-secondary" onclick="document.getElementById('lm-edit-exp').value=_toLocalISO(new Date(Date.now()+6*3600000))">+6 jam</button>
+            <button class="btn btn-xs btn-outline-secondary" onclick="document.getElementById('lm-edit-exp').value=_toLocalISO(new Date(Date.now()+24*3600000))">+24 jam</button>
+            <button class="btn btn-xs btn-outline-secondary" onclick="document.getElementById('lm-edit-exp').value=''">Hapus</button>
+          </div>
+        </div>
+        <div class="d-flex gap-2 justify-content-end">
+          <button class="btn btn-secondary btn-sm" onclick="document.getElementById('lm-edit-modal').remove()">Batal</button>
+          <button class="btn btn-primary btn-sm" onclick="_applyEditWaktu('${id}')">💾 Simpan & Update Link</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+function _applyEditWaktu(id) {
+  const lk = getLinkHistory().find(h => h.id === id);
+  if (!lk) return;
+
+  const startVal = document.getElementById('lm-edit-start').value;
+  const expVal   = document.getElementById('lm-edit-exp').value;
+
+  // Decode config
+  let cfg;
+  try {
+    const hash = lk.url.split('#config=')[1];
+    cfg = JSON.parse(atob(decodeURIComponent(hash)));
+  } catch(e) { showToast('Gagal decode URL', 'danger'); return; }
+
+  // Update start dan exp
+  if (startVal) cfg.start = new Date(startVal).getTime();
+  else          delete cfg.start;
+
+  if (expVal)   cfg.exp   = new Date(expVal).getTime();
+  else          delete cfg.exp;
+
+  // Encode ulang
+  const encoded  = btoa(unescape(encodeURIComponent(JSON.stringify(cfg))));
+  const baseUrl  = lk.url.split('#config=')[0];
+  const newUrl   = baseUrl + '#config=' + encodeURIComponent(encoded);
+
+  // Update di history
+  const hist = getLinkHistory();
+  const idx  = hist.findIndex(h => h.id === id);
+  if (idx >= 0) {
+    hist[idx].url = newUrl;
+    setLinkHistory(hist);
+  }
+
+  // Tutup modal
+  const modal = document.getElementById('lm-edit-modal');
+  if (modal) modal.remove();
+
+  // Tampilkan URL baru
+  const expStr = expVal ? new Date(expVal).toLocaleString('id-ID') : 'tidak ada batas';
+  showToast('✅ Waktu diperbarui. Bagikan link baru ke mahasiswa.', 'success');
+  renderLinkManager();
+
+  // Langsung tampilkan URL baru untuk disalin
+  setTimeout(() => {
+    const copied = prompt(
+      'Link baru dengan waktu yang diperbarui:\n' +
+      '(Berakhir: ' + expStr + ')\n\nSalin link di bawah:',
+      newUrl
+    );
+  }, 500);
 }
 
 // ── Toast notification (menggantikan alert untuk pesan sukses) ────────────────
