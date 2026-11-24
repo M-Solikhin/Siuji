@@ -1640,7 +1640,7 @@ async function startExam() {
     var _acRaw = localStorage.getItem(_acKey);
     if (_acRaw) { _pendingClaim = JSON.parse(_acRaw); localStorage.removeItem(_acKey); }
   } catch(e) {}
-  if (!_hasSavedSession && !_pendingClaim && _ecfg && _ecfg.w && _ecfg.id) {
+  if (!_pendingClaim && _ecfg && _ecfg.w && _ecfg.id) {
     const startBtn = document.querySelector('#screen-identity .btn-primary');
     const origTxt  = startBtn ? startBtn.innerHTML : '';
     if (startBtn) { startBtn.disabled = true; startBtn.innerHTML = '⏳ Memeriksa data...'; }
