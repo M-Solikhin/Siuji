@@ -1698,7 +1698,9 @@ async function startExam() {
         return;
       }
       // Simpan session token untuk polling
-      examState.sessionToken = chk.session_token || '';
+      // Pakai token dari server; jika gagal/kosong, buat token lokal
+      // agar saveProgressNow() tidak diblokir oleh guard !examState.sessionToken
+      examState.sessionToken = chk.session_token || ('local_' + Math.random().toString(36).slice(2, 11));
       // Tangkap progress dari server — diterapkan setelah reset di bawah
       if (chk.saved_progress && Object.keys(chk.saved_progress.answers || {}).length > 0) {
         _serverProgress = chk.saved_progress;
