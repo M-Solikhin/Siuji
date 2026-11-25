@@ -249,67 +249,189 @@
 
         <hr>
         <p class="small fw-semibold mb-2">📄 Kode Google Apps Script (copy ke Apps Script Editor):</p>
-        <div class="apps-script">function doPost(e) {
+        <div class="apps-script">
+function doPost(e) {
   var lock = LockService.getScriptLock();
   try {
-    lock.waitLock(10000);
-    var data = JSON.parse(e.postData.contents);
+    lock.waitLock(20000);
+    var data = JSON.parse((e && e.postData && e.postData.contents) || '{}');
     var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = ss.getSheetByName('Rekap') || ss.insertSheet('Rekap');
+    var examId = String(data.exam_id || '').trim();
+    var nim = String(data.nim || '').trim();
+    var ipSheet, ipRows, ipIdx;
 
-    var headers = [
-      'Timestamp', 'ID Ujian', 'Sub-bab', 'Nama', 'NIM', 'Offering',
-      'Email', 'No. WA', 'Total Soal', 'Benar', 'Skor',
-      'Jumlah Pelanggaran', 'ID Soal Terpilih',
-      'Detail Jawaban', 'Detail Pelanggaran'
-    ];
-    if (sheet.getLastRow() === 0) {
-      sheet.appendRow(headers);
-      sheet.setFrozenRows(1);
+    function reply(obj) {
+      return ContentService.createTextOutput(JSON.stringify(obj))
+        .setMimeType(ContentService.MimeType.JSON);
     }
+    function findInProgress(id, studentNim) {
+      var sh = ss.getSheetByName('InProgress');
+      if (!sh || sh.getLastRow() < 1) return {sheet: sh, rows: [], index: -1};
+      var rows = sh.getDataRange().getValues();
+      for (var i = 0; i < rows.length; i++) {
+        if (String(rows[i][0]).trim() === id && String(rows[i][1]).trim() === studentNim)
+          return {sheet: sh, rows: rows, index: i};
+      }
+      return {sheet: sh, rows: rows, index: -1};
+    }
+    function findSubmission(id, studentNim) {
+      var sh = ss.getSheetByName('Rekap');
+      if (!sh || sh.getLastRow() < 2) return {sheet: sh, found: false};
+      var rows = sh.getDataRange().getValues();
+      var headers = rows[0];
+      var idCol = headers.indexOf('ID Ujian');
+      var nimCol = headers.indexOf('NIM');
+      if (idCol < 0 || nimCol < 0) throw new Error('Kolom ID Ujian atau NIM tidak ditemukan di Rekap.');
+      for (var i = 1; i < rows.length; i++) {
+        if (String(rows[i][idCol]).trim() === id && String(rows[i][nimCol]).trim() === studentNim)
+          return {sheet: sh, found: true, row: i + 1};
+      }
+      return {sheet: sh, found: false};
+    }
+    function requireIdentity() {
+      if (!examId || !nim) throw new Error('ID ujian dan NIM wajib diisi.');
+    }
+
+    if (data.type === 'claim_exam') {
+      requireIdentity();
+      // Submit menang atas klaim biasa maupun klaim paksa.
+      if (findSubmission(examId, nim).found)
+        return reply({claimed: false, reason: 'already_submitted'});
+      var claim = findInProgress(examId, nim);
+      ipSheet = claim.sheet || ss.insertSheet('InProgress');
+      ipIdx = claim.index < 0 ? -1 : claim.index + 1;
+      var maxMinutes = Math.max(1, Number(data.max_duration) || 120);
+      if (ipIdx > 0 && !data.force) {
+        var claimedAt = new Date(claim.rows[claim.index][3]).getTime();
+        var age = Date.now() - claimedAt;
+        if (isFinite(age) && age >= 0 && age < maxMinutes * 60000)
+          return reply({claimed: false, reason: 'active_session'});
+      }
+      var saved = null;
+      var progressSheet = ss.getSheetByName('Progress');
+      if (progressSheet && progressSheet.getLastRow() > 0) {
+        var pRows = progressSheet.getDataRange().getValues();
+        for (var p = 0; p < pRows.length; p++) {
+          if (String(pRows[p][0]).trim() === examId && String(pRows[p][1]).trim() === nim) {
+            try {
+              saved = {
+                answers: JSON.parse(pRows[p][4] || '{}'), current: Number(pRows[p][5]) || 0,
+                device_switches: Number(pRows[p][6]) || 0, device_ids: JSON.parse(pRows[p][7] || '[]'),
+                start_time: Number(pRows[p][8]) || 0, violations: JSON.parse(pRows[p][9] || '[]')
+              };
+            } catch (ignored) { saved = null; }
+            break;
+          }
+        }
+      }
+      var token = Utilities.getUuid();
+      var row = [examId, nim, token, new Date().toISOString(), maxMinutes];
+      if (ipIdx > 0) ipSheet.getRange(ipIdx, 1, 1, 5).setValues([row]);
+      else ipSheet.appendRow(row);
+      return reply({claimed: true, session_token: token, saved_progress: saved});
+    }
+
+    if (data.type === 'check_session') {
+      requireIdentity();
+      var state = findInProgress(examId, nim);
+      if (state.index >= 0)
+        return reply({active: String(state.rows[state.index][2]) === String(data.session_token || '')});
+      return reply({active: !findSubmission(examId, nim).found,
+        reason: findSubmission(examId, nim).found ? 'already_submitted' : 'claim_missing'});
+    }
+
+    if (data.type === 'save_progress') {
+      requireIdentity();
+      var progressClaim = findInProgress(examId, nim);
+      if (progressClaim.index < 0 || !data.session_token ||
+          String(progressClaim.rows[progressClaim.index][2]) !== String(data.session_token))
+        return reply({saved: false, reason: 'stale_session'});
+      if (findSubmission(examId, nim).found)
+        return reply({saved: false, reason: 'already_submitted'});
+      var pgSheet = ss.getSheetByName('Progress') || ss.insertSheet('Progress');
+      var pgRows = pgSheet.getLastRow() > 0 ? pgSheet.getDataRange().getValues() : [];
+      var pgIdx = -1;
+      for (var g = 0; g < pgRows.length; g++) {
+        if (String(pgRows[g][0]).trim() === examId && String(pgRows[g][1]).trim() === nim) { pgIdx = g + 1; break; }
+      }
+      var pgRow = [examId, nim, data.session_token, new Date().toISOString(),
+        JSON.stringify(data.answers || {}), Number(data.current) || 0,
+        Number(data.device_switches) || 0, JSON.stringify(data.device_ids || []),
+        Number(data.start_time) || Date.now(), JSON.stringify(data.violations || [])];
+      if (pgIdx > 0) pgSheet.getRange(pgIdx, 1, 1, 10).setValues([pgRow]); else pgSheet.appendRow(pgRow);
+      // Refresh lease activity so a normal claim cannot steal a live but longer session.
+      progressClaim.sheet.getRange(progressClaim.index + 1, 4).setValue(new Date().toISOString());
+      return reply({saved: true});
+    }
+
+    if (data.type === 'release_claim') {
+      requireIdentity();
+      var releasing = findInProgress(examId, nim);
+      // Old/stale devices cannot release a newer device's claim.
+      if (releasing.index >= 0 && data.session_token &&
+          String(releasing.rows[releasing.index][2]) === String(data.session_token))
+        releasing.sheet.deleteRow(releasing.index + 1);
+      return reply({released: true});
+    }
+
+    if (data.type === 'check_nim') {
+      requireIdentity();
+      var existing = findSubmission(examId, nim);
+      if (!existing.found) return reply({taken: false});
+      var rowValues = existing.sheet.getRange(existing.row, 1, 1, existing.sheet.getLastColumn()).getValues()[0];
+      var hdr = existing.sheet.getRange(1, 1, 1, existing.sheet.getLastColumn()).getValues()[0];
+      var nameCol = hdr.indexOf('Nama');
+      return reply({taken: true, nama: nameCol >= 0 ? String(rowValues[nameCol]) : ''});
+    }
+
+    var sheet = ss.getSheetByName('Rekap') || ss.insertSheet('Rekap');
+    var headers = [
+      'Waktu Mulai','Waktu Selesai','Durasi (hh:mm:ss)','ID Ujian','Sub-bab','Jenis Ujian',
+      'Mata Kuliah','Nama','NIM','Offering','Email','No. WA','Total Soal','Benar','Salah',
+      'Kosong','Skor','Auto Submit','Pelanggaran Berat >=4dtk','Perpindahan Ringan <4dtk',
+      'ID Soal Terpilih','Detail Jawaban','Detail Pelanggaran','Perpindahan Device','Jumlah Device'
+    ];
+    if (sheet.getLastRow() === 0) { sheet.appendRow(headers); sheet.setFrozenRows(1); }
 
     if (data.type === 'test') {
-      sheet.appendRow([
-        data.timestamp || new Date().toISOString(), 'TEST', 'TEST',
-        'Uji koneksi webhook', '', '', '', '', 0, 0, 0, 0, '[]', '{}', '[]'
-      ]);
-      return ContentService.createTextOutput(
-        JSON.stringify({status: 'ok', message: 'Test row recorded'})
-      ).setMimeType(ContentService.MimeType.JSON);
+      sheet.appendRow([new Date().toISOString(),new Date().toISOString(),'00:00:00','TEST','TEST','TEST','TEST','Uji koneksi','','','','',0,0,0,0,0,'Tidak',0,0,'[]','[]','[]',0,1]);
+      return reply({status: 'ok', message: 'Test row recorded'});
     }
 
+    // Legacy exam result payloads and explicit submit_exam both use this path.
+    requireIdentity();
+    var prior = findSubmission(examId, nim);
+    if (prior.found) return reply({status: 'duplicate', accepted: false, reason: 'already_submitted'});
+    var active = findInProgress(examId, nim);
+    if (!data.session_token || active.index < 0 || String(active.rows[active.index][2]) !== String(data.session_token))
+      return reply({status: 'rejected', accepted: false, reason: 'stale_session'});
+
     var violations = data.violations || [];
-    var answers = data.answers || [];
     sheet.appendRow([
-      data.timestamp || new Date().toISOString(),
-      data.exam_id || '',
-      data.subbab || '',
-      data.nama || '',
-      data.nim || '',
-      data.offering || '',
-      data.email || '',
-      data.wa || '',
-      data.n_soal || 0,
-      data.benar || 0,
-      data.score || 0,
-      violations.length,
-      JSON.stringify(data.question_ids || []),
-      JSON.stringify(answers),
-      JSON.stringify(violations)
+      data.waktu_mulai||'', data.waktu_selesai||new Date().toISOString(), data.durasi_hms||'00:00:00',
+      examId, data.subbab||'', data.jenis_ujian||'', data.mk||'', data.nama||'', nim, data.offering||'',
+      data.email||'', data.wa||'', Number(data.n_soal)||0, Number(data.benar)||0, Number(data.salah)||0,
+      Number(data.kosong)||0, Number(data.score)||0, data.auto_submit||'Tidak', Number(data.pel_berat)||0,
+      Number(data.pel_ringan)||0, JSON.stringify(data.question_ids||[]), JSON.stringify(data.answers||[]),
+      JSON.stringify(violations), Number(data.device_switches)||0, Number(data.device_count)||1
     ]);
-
-    return ContentService.createTextOutput(
-      JSON.stringify({status: 'ok'})
-    ).setMimeType(ContentService.MimeType.JSON);
-
+    // Mark submitted first (by appending Rekap), then remove the claim and draft progress.
+    active.sheet.deleteRow(active.index + 1);
+    var drafts = ss.getSheetByName('Progress');
+    if (drafts && drafts.getLastRow() > 0) {
+      var dRows = drafts.getDataRange().getValues();
+      for (var d = dRows.length - 1; d >= 0; d--)
+        if (String(dRows[d][0]).trim() === examId && String(dRows[d][1]).trim() === nim) drafts.deleteRow(d + 1);
+    }
+    return reply({status: 'ok', accepted: true});
   } catch (err) {
-    return ContentService.createTextOutput(
-      JSON.stringify({status: 'error', message: err.message})
-    ).setMimeType(ContentService.MimeType.JSON);
+    return ContentService.createTextOutput(JSON.stringify({status: 'error', message: err.message}))
+      .setMimeType(ContentService.MimeType.JSON);
   } finally {
-    try { lock.releaseLock(); } catch (e) {}
+    try { lock.releaseLock(); } catch (ignored) {}
   }
-}</div>
+}
+</div>
         <p class="small text-muted mt-2">
           <strong>Langkah deploy:</strong>
           Buka Google Sheets → Extensions → Apps Script → paste kode di atas →
@@ -406,7 +528,7 @@ const MK_INFO = {
   'Kalkulus': {
     nama: 'Kalkulus',
     subbab: {
-      '15.1': { nama: 'Sub-bab 15.1 — Integral Ganda pada Persegi Panjang', totalSoal: 36 },
+      '15.1': { nama: 'Sub-bab 15.1 — Integral Ganda pada Persegi Panjang', totalSoal: 37 },
       '15.2': { nama: 'Sub-bab 15.2 — Integral Ganda pada Daerah Umum',    totalSoal: 24 }
       // Tambah 15.3, 15.4 dst di sini
     }
@@ -631,6 +753,11 @@ async function generateLinkUjian() {
   }
 
   const webhookUrl = (localStorage.getItem(LS_PREFIX + 'webhook_url') || '').trim();
+  if (!webhookUrl) {
+    alert('Simpan URL webhook Apps Script dan uji koneksi sebelum membuat link ujian.');
+    document.getElementById('webhookUrl').focus();
+    return;
+  }
   const examId     = (window.crypto && crypto.randomUUID)
     ? crypto.randomUUID()
     : (Date.now().toString(36) + Math.random().toString(36).slice(2, 10));
