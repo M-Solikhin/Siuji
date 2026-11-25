@@ -825,8 +825,25 @@ const ANSWER_POOL_PBM32 = [
 // Tambahkan UUID ujian ke daftar ini untuk menonaktifkan link secara permanen.
 // UUID didapat dari field 'id' di config link (admin.html → Generate Link).
 const BLOCKED_EXAM_IDS = [
-  '39c03f72-31c9-475f-95bd-6240eb706cf7',
-  '8e785c64-5f89-410a-a41f-01cf3b837d7f'
+  'be6336c2-3549-4c13-8056-fb5b867196fd',  // Pretest-1 PBM.1.1
+  'cf6caece-6d83-411b-bc4e-30923717197a',  // Posttest-1 PBM.1.1
+  '90ddc793-54f2-4578-9969-dfed6d07bb5f',  // Pretest-2 PBM.1.2
+  'e480fb1d-884d-4485-b2d0-19a03647e107',  // Posttest-2 PBM.1.2
+  '978a7d2a-6a81-412b-b72d-e580816b3cd1',  // Pretest-3 PBM.1.3
+  'ddf17a68-e25b-4079-a401-cee618219cf0',  // Posttest-3 PBM.1.3
+  'dadb5c39-2532-4895-9c11-95874a2b2f8a',  // Pretest-4 PBM.1.4
+  '810bb1dd-6888-4ff7-954c-1a41a8d4f2af',  // Posttest-4 PBM.1.4
+  'c66be136-c675-4dc6-89e1-d82b691377db',  // Pretest-5 PBM.2.2
+  '5fe07f4a-f21e-4e80-91cf-133aeeaff8ac',  // Posttest-5 PBM.2.2
+  '63133284-84e7-489c-8b43-176d4d705fde',  // Pretest-6 PBM.2.3
+  '6d597d53-1efa-4b1c-afa0-423c4af915d0',  // Posttest-6 PBM.2.3
+  '17e592cf-7ab2-42cb-8e46-cc414b0ae394',  // Pretest-7 multi(2.1,2.4,2.5,3.1,3.2)
+  '03cace04-9bb8-435c-b0aa-cec5a21d6a88',  // Pretest-1 PBM.1.1 [lama]
+  '5fecfd0f-bf61-4109-a3ce-fe7d6a009c2b',  // Posttest-1 PBM.1.1 [lama]
+  '0f65d63f-a7a2-4521-9cf3-da8ffa5fc174',  // Pretest-2 PBM.1.2 [lama]
+  'ef2414f0-92dc-4050-b954-5e7305b17722',  // Posttest-2 PBM.1.2 [lama]
+  '56a87931-e200-482e-8740-99312c4ddcb0',  // Pretest-3 PBM.1.3 [lama]
+  '79d80655-b6c0-46bd-9359-893a60859677',  // Posttest-3 PBM.1.3 [lama]
 ];
 
 // ── Lookup tabel pool per sub-bab (semua pool sudah dideklarasikan di atas) ──
@@ -1444,11 +1461,11 @@ function updateExamHeaders(cfg) {
 // ── Cek NIM di Google Sheets (doGet Apps Script) ────────────────────────────
 // ── Klaim slot ujian: cek NIM sudah submit + daftarkan "sedang dikerjakan" ───
 // Apps Script (doPost) menangani type:'claim_exam' secara atomik dengan LockService.
-// Jika sukses: {claimed:true}  — soal boleh ditampilkan
-// Jika gagal:  {claimed:false} — device lain sudah mengklaim slot ini
-// Jika error:  {claimed:true}  — fallback aman (jangan blokir mahasiswa sah)
+// Jika sukses: {claimed:true} — sesi server diberikan
+// Jika gagal:  {claimed:false} — sesi aktif, ujian sudah submit, atau server bermasalah
+// Jika error jaringan: gagal tertutup; ujian tidak dimulai tanpa token server
 async function claimExamSlot(nim, examId, dur, webhookUrl, force) {
-  if (!webhookUrl || !examId) return { claimed: true }; // fallback aman
+  if (!webhookUrl || !examId) return { claimed: false, reason: 'server_config' };
   try {
     const ctrl  = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 9000);
@@ -1466,11 +1483,11 @@ async function claimExamSlot(nim, examId, dur, webhookUrl, force) {
       signal: ctrl.signal
     });
     clearTimeout(timer);
-    if (!res.ok) return { claimed: true }; // fallback aman
+    if (!res.ok) return { claimed: false, reason: 'server_unavailable' };
     return await res.json();
   } catch(e) {
     console.warn('[SIUJI] Claim gagal, lanjut:', e.message);
-    return { claimed: true }; // fallback aman
+    return { claimed: false, reason: 'server_unavailable' };
   }
 }
 
@@ -1533,7 +1550,7 @@ function autoLogoutTakenOver() {
 
 function debouncedSaveProgress() {
   if (_saveTimer) clearTimeout(_saveTimer);
-  _saveTimer = setTimeout(saveProgressNow, 800);
+  _saveTimer = setTimeout(saveProgressNow, 200);
 }
 
 function saveProgressNow() {
@@ -1551,20 +1568,22 @@ function saveProgressNow() {
       answers:        examState.answers || {},
       current:        examState.current || 0,
       device_switches: examState.deviceSwitches || 0,
-      device_ids:     examState.deviceIds || []
+      device_ids:     examState.deviceIds || [],
+      start_time:     examState.startTime || Date.now(),
+      violations:     examState.violations || []
     }),
     keepalive: true
   }).catch(function() {});
 }
 
 // ── Lepas klaim setelah ujian selesai/submit ──────────────────────────────────
-function releaseExamClaim(nim, examId, webhookUrl) {
+function releaseExamClaim(nim, examId, webhookUrl, sessionToken) {
   if (!webhookUrl || !examId || !nim) return;
   fetch(webhookUrl, {
     method:   'POST',
     mode:     'no-cors',           // fire-and-forget, tidak perlu baca respons
     headers:  { 'Content-Type': 'text/plain;charset=utf-8' },
-    body:     JSON.stringify({ type: 'release_claim', exam_id: examId, nim: nim }),
+    body:     JSON.stringify({ type: 'release_claim', exam_id: examId, nim: nim, session_token: sessionToken || '' }),
     keepalive: true
   }).catch(function(){});
 }
@@ -1627,7 +1646,7 @@ async function startExam() {
     return;
   }
 
-  // ── [Fitur 2] Cek NIM di Google Sheets (lintas browser/device) ────────────
+  // ── Klaim sesi server (berlaku lintas browser/perangkat) ─────────────────
   const _ecfg = examState.config;  // cfg tidak accessible di scope ini
   // Cek apakah ini RESUME dari sesi localStorage yang ada
   // Jika ada sesi tersimpan → skip claim check (device ini sudah punya hak akses)
@@ -1640,7 +1659,11 @@ async function startExam() {
     var _acRaw = localStorage.getItem(_acKey);
     if (_acRaw) { _pendingClaim = JSON.parse(_acRaw); localStorage.removeItem(_acKey); }
   } catch(e) {}
-  if (!_pendingClaim && _ecfg && _ecfg.w && _ecfg.id) {
+  if (!_ecfg || !_ecfg.id || !_ecfg.w) {
+    errEl.textContent = '⛔ Link ujian tidak memiliki ID atau URL server yang valid. Hubungi dosen untuk link terbaru.';
+    errEl.style.display = 'block'; examState.student = null; return;
+  }
+  if (!_pendingClaim && _ecfg && _ecfg.id) {
     const startBtn = document.querySelector('#screen-identity .btn-primary');
     const origTxt  = startBtn ? startBtn.innerHTML : '';
     if (startBtn) { startBtn.disabled = true; startBtn.innerHTML = '⏳ Memeriksa data...'; }
@@ -1648,7 +1671,19 @@ async function startExam() {
     try {
       const chk = await claimExamSlot(nim, _ecfg.id, _ecfg.d, _ecfg.w, false);
       if (chk.claimed === false) {
-        // Tampilkan opsi Ambil Alih
+        if (chk.reason === 'already_submitted') {
+          errEl.textContent = '⛔ Ujian ini sudah dikumpulkan untuk NIM tersebut. Hubungi dosen jika perlu koreksi.';
+          errEl.style.display = 'block'; examState.student = null;
+          if (startBtn) { startBtn.disabled = false; startBtn.innerHTML = origTxt; }
+          return;
+        }
+        if (chk.reason !== 'active_session') {
+          errEl.textContent = '⛔ Server ujian tidak dapat dihubungi atau konfigurasi link tidak lengkap. Periksa koneksi dan hubungi dosen.';
+          errEl.style.display = 'block'; examState.student = null;
+          if (startBtn) { startBtn.disabled = false; startBtn.innerHTML = origTxt; }
+          return;
+        }
+        // Tampilkan opsi Ambil Alih hanya untuk sesi aktif di perangkat lain.
         errEl.innerHTML = '<strong>⚠️ Sesi Aktif di Browser/Device Lain</strong><br>' +
           'NIM <strong>' + nim + '</strong> sedang mengerjakan ujian ini di tempat lain.<br>' +
           '<div class="mt-2 d-flex gap-2">' +
@@ -1674,7 +1709,9 @@ async function startExam() {
             errEl.textContent = 'Klaim berhasil. Memuat soal ujian...';
             setTimeout(function() { startExam(); }, 300);
           } else {
-            errEl.textContent = 'Gagal mengambil alih. Coba lagi atau hubungi dosen.';
+            errEl.textContent = f2.reason === 'already_submitted'
+              ? 'Ujian ini sudah dikumpulkan untuk NIM tersebut.'
+              : 'Gagal mengambil alih. Coba lagi atau hubungi dosen.';
             _bTO2.disabled=false; _bTO2.textContent='Ambil Alih ke Device Ini';
           }
         };
@@ -1683,13 +1720,23 @@ async function startExam() {
       // Simpan session token untuk polling
       // Pakai token dari server; jika gagal/kosong, buat token lokal
       // agar saveProgressNow() tidak diblokir oleh guard !examState.sessionToken
-      examState.sessionToken = chk.session_token || ('local_' + Math.random().toString(36).slice(2, 11));
+      examState.sessionToken = chk.session_token || '';
+      if (!examState.sessionToken) {
+        errEl.textContent = '⛔ Server tidak memberikan token sesi. Silakan coba lagi.';
+        errEl.style.display = 'block'; examState.student = null;
+        if (startBtn) { startBtn.disabled = false; startBtn.innerHTML = origTxt; }
+        return;
+      }
       // Tangkap progress dari server — diterapkan setelah reset di bawah
       if (chk.saved_progress && Object.keys(chk.saved_progress.answers || {}).length > 0) {
         _serverProgress = chk.saved_progress;
       }
     } catch(e) {
-      console.warn('[SIUJI] Claim check gagal, lanjut:', e.message);
+      console.warn('[SIUJI] Claim check gagal:', e.message);
+      errEl.textContent = '⛔ Server ujian tidak dapat dihubungi. Periksa koneksi lalu coba lagi.';
+      errEl.style.display = 'block'; examState.student = null;
+      if (startBtn) { startBtn.disabled = false; startBtn.innerHTML = origTxt; }
+      return;
     }
     if (startBtn) { startBtn.disabled = false; startBtn.innerHTML = origTxt; }
   } else if (_pendingClaim) {
@@ -1707,6 +1754,8 @@ async function startExam() {
     // Ambil Alih: progress dari klaim paksa sebelumnya
     if (pcp.answers) examState.answers = pcp.answers;
     if (typeof pcp.current === 'number') examState.current = pcp.current;
+    if (pcp.start_time) examState.startTime = Number(pcp.start_time) || Date.now();
+    if (Array.isArray(pcp.violations)) examState.violations = pcp.violations;
     examState.deviceSwitches = (pcp.device_switches || 0) + 1;
     examState.deviceIds      = (pcp.device_ids      || []).concat([getDeviceId()]);
   } else if (_serverProgress) {
@@ -1714,6 +1763,8 @@ async function startExam() {
     // Device kembali setelah diambil alih: ini juga satu Ambil Alih
     examState.answers        = sp.answers || {};
     if (typeof sp.current === 'number') examState.current = sp.current;
+    if (sp.start_time) examState.startTime = Number(sp.start_time) || Date.now();
+    if (Array.isArray(sp.violations)) examState.violations = sp.violations;
     examState.deviceSwitches = (sp.device_switches || 0) + 1;
     examState.deviceIds      = (sp.device_ids      || []).concat([getDeviceId()]);
     hapusSesi();  // hapus sesi localStorage stale agar popup resume tidak tampil dengan data lama
@@ -1721,8 +1772,8 @@ async function startExam() {
     // Fresh start: device pertama
     examState.deviceIds = [getDeviceId()];
   }
-  examState.startTime  = Date.now();
-  examState.violations = [];
+  if (!examState.startTime) examState.startTime = Date.now();
+  if (!Array.isArray(examState.violations)) examState.violations = [];
   examState.submitted  = false;
 
   // ── Normalisasi config → poolConfigs (single-bank dan multi-bank) ───────────
@@ -1875,7 +1926,7 @@ function renderSoal(idx) {
     radio.addEventListener('change', function () {
       examState.answers[idx] = radio.dataset.key;
       simpanSesi();
-      debouncedSaveProgress();   // auto-save ke localStorage setiap jawaban berubah
+      debouncedSaveProgress();   // autosave ke server (localStorage juga disimpan di atas)
       // Update visual: hapus semua .selected lalu tambah ke label yang dipilih
       container.querySelectorAll('label.option-btn').forEach(function (lbl) {
         lbl.classList.remove('selected');
@@ -2057,12 +2108,7 @@ function submitExam(autoSubmit) {
   examState.phase       = 'done';
   examState.submitted   = true;
   examState.autoSubmit  = !!autoSubmit;
-  hapusSesi();   // hapus sesi tersimpan — ujian sudah selesai
-  _markDone();   // [Fitur 1] tandai NIM+link sudah selesai
   stopSessionPolling();
-  if (examState.config && examState.student) {
-    releaseExamClaim(examState.student.nim, examState.config.id, examState.config.w);
-  }
   if (examState.timerInterval) clearInterval(examState.timerInterval);
 
   // Notifikasi khusus jika dikumpulkan otomatis karena waktu habis
@@ -2239,6 +2285,8 @@ async function sendWebhook(details, benar, salah, kosong, total, skor) {
   const pelBeratList  = examState.violations.filter(function(v){ return v.type === 'tab_switch'; });
   const pelRinganList = examState.violations.filter(function(v){ return v.type === 'tab_switch_singkat'; });
   const payload = {
+    type:           'submit_exam',
+    session_token:  examState.sessionToken || '',
     waktu_mulai:    new Date(examState.startTime).toISOString(),
     waktu_selesai:  new Date(selesai).toISOString(),
     durasi_hms: (function() {
@@ -2273,17 +2321,28 @@ async function sendWebhook(details, benar, salah, kosong, total, skor) {
   };
 
   try {
-    await fetch(webhookUrl, {
+    const response = await fetch(webhookUrl, {
       method: 'POST',
-      mode: 'no-cors',
+      mode: 'cors',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload),
-      keepalive: true
+      body: JSON.stringify(payload)
     });
+    const result = await response.json();
+    if (!response.ok || result.accepted === false || result.status === 'error') {
+      const duplicate = result.reason === 'already_submitted';
+      if (duplicate) { _markDone(); hapusSesi(); }
+      alert(duplicate
+        ? 'Ujian ini sudah tercatat pernah dikumpulkan. Nilai kedua tidak disimpan.'
+        : 'Server menolak penyimpanan hasil (' + (result.reason || result.message || 'status tidak diketahui') + '). Sesi lokal dipertahankan; muat ulang untuk mencoba kembali atau hubungi dosen/pengawas.');
+      return false;
+    }
+    _markDone();
+    hapusSesi();
+    return true;
   } catch (e) {
     console.error('Pengiriman hasil ke Google Sheets gagal:', e);
-    alert('Hasil ujian tampil, tetapi pengiriman ke Google Sheets gagal.\n' +
-          'Segera hubungi dosen/pengawas dan tunjukkan halaman ini.');
+    alert('Hasil ujian tampil, tetapi server belum mengonfirmasi penyimpanan. Sesi lokal dipertahankan; muat ulang untuk mencoba kembali atau segera hubungi dosen/pengawas.');
+    return false;
   }
 }
 
